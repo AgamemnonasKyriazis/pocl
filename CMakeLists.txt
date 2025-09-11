@@ -287,6 +287,8 @@ option(ENABLE_PROXY_DEVICE_INTEROP "Enable OpenGL- or EGL-interop with the proxy
 
 option(ENABLE_ALMAIF_DEVICE "Enable the generic hardware accelerator device driver." OFF)
 
+option(ENABLE_CGRA_DEVICE "Enable the generic CGRA accelerator device driver." ON)
+
 option(KERNEL_CACHE_DEFAULT "Default value for the kernel compile cache. If disabled, pocl will still use kernel cache for intermediate compilation files, but will clean up them on exit. You can still enable keeping the files it at runtime with an env var." ON)
 
 option(ENABLE_REMOTE_SERVER "Build the 'pocld' server daemon for the remote driver" OFF)
@@ -1900,6 +1902,11 @@ if(ENABLE_ALMAIF_DEVICE)
   set(OCL_DRIVERS "${OCL_DRIVERS} almaif")
 endif()
 
+if(ENABLE_CGRA_DEVICE)
+  set(BUILD_CGRA 1)
+  set(OCL_DRIVERS "${OCL_DRIVERS} cgra")
+endif()
+
 if(DEFINED EXTRA_OCL_TARGETS)
   set(OCL_TARGETS "${OCL_TARGETS} ${EXTRA_OCL_TARGETS}")
 endif()
@@ -2855,6 +2862,7 @@ MESSAGE(STATUS "ENABLE_TCE: ${ENABLE_TCE}")
 MESSAGE(STATUS "ENABLE_TCEMC: ${ENABLE_TCEMC}")
 MESSAGE(STATUS "ENABLE_HSA: ${ENABLE_HSA}")
 MESSAGE(STATUS "ENABLE_ALMAIF_DEVICE: ${ENABLE_ALMAIF_DEVICE}")
+MESSAGE(STATUS "ENABLE_CGRA_DEVICE: ${ENABLE_CGRA_DEVICE}")
 MESSAGE(STATUS "ENABLE_CUDA: ${ENABLE_CUDA}")
 MESSAGE(STATUS "ENABLE_CUDNN: ${ENABLE_CUDNN}")
 MESSAGE(STATUS "ENABLE_HOST_CPU_DEVICES: ${ENABLE_HOST_CPU_DEVICES}")

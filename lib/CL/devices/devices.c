@@ -90,6 +90,10 @@
 #include "almaif/almaif.h"
 #endif
 
+#if defined(BUILD_ALMAIF)
+#include "cgra/cgra.h"
+#endif
+
 #ifdef BUILD_PROXY
 #include "proxy/pocl_proxy.hpp"
 #endif
@@ -176,6 +180,9 @@ static init_device_ops pocl_devices_init_ops[] = {
 #ifdef BUILD_ALMAIF
   INIT_DEV (almaif),
 #endif
+#ifdef BUILD_CGRA
+  INIT_DEV (cgra),
+#endif
 #ifdef BUILD_PROXY
   INIT_DEV (proxy),
 #endif
@@ -213,6 +220,9 @@ char pocl_device_types[POCL_NUM_DEVICE_TYPES][33] = {
 #endif
 #ifdef BUILD_ALMAIF
   "almaif",
+#endif
+#ifdef BUILD_CGRA
+  "cgra",
 #endif
 #ifdef BUILD_PROXY
   "proxy",

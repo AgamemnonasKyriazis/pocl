@@ -72,6 +72,12 @@ if(BUILD_ALMAIF)
     "$<TARGET_OBJECTS:pocl-devices-almaif>")
 endif()
 
+if(BUILD_CGRA)
+  add_subdirectory("cgra")
+  set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
+          "$<TARGET_OBJECTS:pocl-devices-cgra>")
+endif()
+
 if(BUILD_TBB)
   add_subdirectory("tbb")
   set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"

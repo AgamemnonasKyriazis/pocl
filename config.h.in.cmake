@@ -15,6 +15,8 @@
 #cmakedefine BUILD_REMOTE_CLIENT
 #cmakedefine BUILD_PROXY
 
+#cmakedefine BUILD_CGRA
+
 #define BUILDDIR "@BUILDDIR@"
 
 /* "Build with ICD" */
