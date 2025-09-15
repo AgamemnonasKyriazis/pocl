@@ -400,6 +400,8 @@ pocl_get_device_type_count(cl_device_type device_type)
   unsigned int count = 0;
   cl_device_id device;
 
+  printf("%d\n", device_type);
+
   if (device_type == CL_DEVICE_TYPE_DEFAULT)
     {
       return pocl_devices ? 1 : 0;
@@ -407,6 +409,9 @@ pocl_get_device_type_count(cl_device_type device_type)
 
   LL_FOREACH_ATOMIC (pocl_devices, device)
   {
+
+    printf("%d %s\n", device->type, device->long_name);
+
     if (!pocl_offline_compile && (*device->available == CL_FALSE))
       continue;
 

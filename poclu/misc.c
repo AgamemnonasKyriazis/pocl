@@ -422,6 +422,10 @@ fail:
 int
 check_cl_error (cl_int cl_err, int line, const char* func_name) {
 
+  if (cl_err != CL_SUCCESS && func_name && strcmp(func_name, "clCreateContext") == 0) {
+    fprintf(stderr, "[line %d] %s error: %d\n", line, func_name, cl_err);
+  }
+
   switch (cl_err)
     {
     case CL_SUCCESS: return 0;
