@@ -1,6 +1,8 @@
 #include "cgra.h"
 
 #include "common.h"
+#include "common_driver.h"
+
 #include "config.h"
 #include "config2.h"
 #include "cpuinfo.h"
@@ -47,6 +49,12 @@ pocl_cgra_init_device_ops(struct pocl_device_ops *ops)
   ops->init = pocl_cgra_init;
   ops->build_hash = pocl_cgra_build_hash;
 
+  // Control
+  ops->submit = pocl_cgra_submit;
+  ops->join = pocl_cgra_join;
+  ops->flush = pocl_cgra_flush;
+
+
   // Memory
   ops->alloc_mem_obj = pocl_cgra_alloc_mem_obj;
   ops->free = pocl_cgra_free;
@@ -73,6 +81,7 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   cl_int ret = CL_SUCCESS;
 
   pocl_init_default_device_infos(device, "");
+  pocl_setup_device_for_system_memory(device);
 
   device->type = CL_DEVICE_TYPE_ACCELERATOR;
   device->long_name = (char *)"mm-reconfigurable-accelerator-device";
@@ -81,23 +90,20 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   device->version = "OpenCL 3.0 PoCL";
   device->extensions = "";
   device->profile = "FULL_PROFILE";
-  /*
-  device->max_mem_alloc_size = 100 * 1024 * 1024;
-  device->mem_base_addr_align = 8;
-  device->max_constant_buffer_size = 32768;
-  device->local_mem_size = 16384;
+
+  device->max_mem_alloc_size = 1024;
+  device->max_constant_buffer_size = 256;
+  device->local_mem_size = 1024;
+  device->mem_base_addr_align = 4;
   device->address_bits = 32;
-  device->max_compute_units = 1;
   device->image_support = CL_FALSE;
-  device->profiling_timer_resolution = 1000;
-  */
+
+  device->max_compute_units = 1;
+  device->max_work_group_size = 3;
   device->max_work_item_dimensions = 3;
-  /*
-  device->max_work_group_size = device->max_work_item_sizes[0] =
-      device->max_work_item_sizes[1] = device->max_work_item_sizes[2] = 1024;
-  device->max_work_item_sizes[0] = device->max_work_item_sizes[1] =
-      device->max_work_item_sizes[2] = device->max_work_group_size = 64;
-  */
+  device->max_work_item_sizes[0] = \
+  device->max_work_item_sizes[1] = \
+  device->max_work_item_sizes[2] = 1;
 
   pocl_cgra_data_t *d;
   d = (pocl_cgra_data_t *)calloc (1, sizeof (pocl_cgra_data_t));
@@ -116,8 +122,10 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
 
 cl_int pocl_cgra_alloc_mem_obj(cl_device_id device, cl_mem mem_obj, void *host_ptr)
 {
-  cl_int ret = CL_SUCCESS;
+  cl_int ret = CL_MEM_OBJECT_ALLOCATION_FAILURE;
+  ret = CL_SUCCESS;
   printf("CGRA::alloc_mem_obj\n");
+  return pocl_driver_alloc_mem_obj (device, mem_obj, host_ptr);
   return ret;
 }
 
@@ -150,7 +158,7 @@ pocl_cgra_write (void *data,
                  cl_mem dst_buf,
                  size_t offset, size_t size)
 {
-
+  printf("CGRA::write\n");
 }
 
 void
@@ -161,5 +169,81 @@ pocl_cgra_read (void *data,
                 size_t offset,
                 size_t size)
 {
+  printf("CGRA::read\n");
+}
 
+static void
+cgra_schedule_command(pocl_cgra_data_t *data)
+{
+  _cl_command_node *node;
+
+  while ((node = data->ready_list))
+  {
+      assert (pocl_command_is_ready (node->sync.event.event));
+      assert (node->sync.event.event->status == CL_SUBMITTED);
+      CDL_DELETE (data->ready_list, node);
+      POCL_UNLOCK (data->cq_lock);
+      pocl_exec_command (node);
+      POCL_LOCK (data->cq_lock);
+  }
+  return;
+}
+
+void
+pocl_cgra_submit (_cl_command_node *node, cl_command_queue cq)
+{
+  printf("CGRA::submit-%x-%x\n", node->type, node->command);
+  switch (node->type)
+  {
+	case CL_COMMAND_NDRANGE_KERNEL:
+	  printf("CL_COMMAND_NDRANGE_KERNEL\n");
+	  break;
+    case CL_COMMAND_TASK:
+	  printf("CL_COMMAND_TASK\n");
+	  break;
+	case CL_COMMAND_NATIVE_KERNEL:
+	  printf("CL_COMMAND_NATIVE_KERNEL\n");
+	  break;
+    case CL_COMMAND_READ_BUFFER:
+	  printf("CL_COMMAND_READ_BUFFER\n");
+	  break;
+	case CL_COMMAND_WRITE_BUFFER:
+	  printf("CL_COMMAND_WRITE_BUFFER\n");
+	  break;
+	case CL_COMMAND_COPY_BUFFER:
+	  printf("CL_COMMAND_COPY_BUFFER\n");
+	  break;
+	case CL_COMMAND_MAP_BUFFER:
+	  printf("CL_COMMAND_MAP_BUFFER\n");
+    default:
+      printf("Unknown command type type::%x command::%x\n", node->type, node->command);
+	  break;
+  }
+
+  if (node->type == CL_COMMAND_NDRANGE_KERNEL)
+  {
+
+  }
+  else
+  {
+    pocl_cgra_data_t *data = node->device->data;
+    node->state = POCL_COMMAND_READY;
+    POCL_LOCK (data->cq_lock);
+    pocl_command_push(node, &data->ready_list, &data->command_list);
+	POCL_UNLOCK_OBJ (node->sync.event.event);
+	cgra_schedule_command(data);
+    POCL_UNLOCK (data->cq_lock);
+  }
+}
+
+void
+pocl_cgra_join (cl_device_id device, cl_command_queue cq)
+{
+  printf("CGRA::join\n");
+}
+
+void
+pocl_cgra_flush (cl_device_id device, cl_command_queue cq)
+{
+  printf("CGRA::flush\n");
 }
