@@ -1,4 +1,5 @@
 #include "cgra.h"
+#include "cgra_mem.h"
 
 #include "common.h"
 #include "common_driver.h"
@@ -54,13 +55,15 @@ pocl_cgra_init_device_ops(struct pocl_device_ops *ops)
   ops->join = pocl_cgra_join;
   ops->flush = pocl_cgra_flush;
 
-
   // Memory
   ops->alloc_mem_obj = pocl_cgra_alloc_mem_obj;
   ops->free = pocl_cgra_free;
   ops->map_mem = pocl_cgra_map_mem;
   ops->write = pocl_cgra_write;
   ops->read = pocl_cgra_read;
+
+  // Events
+  ops->broadcast = pocl_cgra_broadcast;
 }
 
 unsigned int
@@ -91,11 +94,7 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   device->extensions = "";
   device->profile = "FULL_PROFILE";
 
-  device->max_mem_alloc_size = 1024;
-  device->max_constant_buffer_size = 256;
-  device->local_mem_size = 1024;
-  device->mem_base_addr_align = 4;
-  device->address_bits = 32;
+  device->global_mem_id = 0;
   device->image_support = CL_FALSE;
 
   device->max_compute_units = 1;
@@ -122,10 +121,25 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
 
 cl_int pocl_cgra_alloc_mem_obj(cl_device_id device, cl_mem mem_obj, void *host_ptr)
 {
-  cl_int ret = CL_MEM_OBJECT_ALLOCATION_FAILURE;
-  ret = CL_SUCCESS;
+  cl_int ret = CL_SUCCESS;
   printf("CGRA::alloc_mem_obj\n");
-  return pocl_driver_alloc_mem_obj (device, mem_obj, host_ptr);
+  printf("device gmemID = %d\n", device->global_mem_id);
+  /* if we share global memory with CPU, let the CPU driver allocate it */
+  if (device->global_mem_id == 0)
+    return pocl_driver_alloc_mem_obj (device, mem_obj, host_ptr);
+
+  /* ... otherwise allocate. */
+  printf("local allocate mem obj\n");
+  pocl_mem_identifier *p = &mem_obj->device_ptrs[device->global_mem_id];
+  pocl_global_mem_t *gmem = device->global_memory;
+  pocl_cgra_data_t* d = device->data;
+  void *b = NULL;
+  p->mem_ptr = b;
+  p->version = 0;
+
+  if (b == NULL)
+    return CL_MEM_OBJECT_ALLOCATION_FAILURE;
+
   return ret;
 }
 
@@ -159,6 +173,7 @@ pocl_cgra_write (void *data,
                  size_t offset, size_t size)
 {
   printf("CGRA::write\n");
+  pocl_driver_write(data, src_host_ptr, dst_mem_id, dst_buf, offset, size);
 }
 
 void
@@ -170,6 +185,14 @@ pocl_cgra_read (void *data,
                 size_t size)
 {
   printf("CGRA::read\n");
+  pocl_driver_read(data, dst_host_ptr, src_mem_id, src_buf, offset, size);
+}
+
+void
+pocl_cgra_broadcast (cl_event event)
+{
+  printf("broadcasting\n");
+  pocl_broadcast(event);
 }
 
 static void
@@ -179,11 +202,14 @@ cgra_schedule_command(pocl_cgra_data_t *data)
 
   while ((node = data->ready_list))
   {
+      printf("CGRA::schedule_command\n");
       assert (pocl_command_is_ready (node->sync.event.event));
       assert (node->sync.event.event->status == CL_SUBMITTED);
       CDL_DELETE (data->ready_list, node);
       POCL_UNLOCK (data->cq_lock);
+      printf("CGRA:exec_in_command\n");
       pocl_exec_command (node);
+      printf("CGRA:exec_out_command\n");
       POCL_LOCK (data->cq_lock);
   }
   return;
