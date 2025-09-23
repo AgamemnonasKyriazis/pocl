@@ -49,21 +49,21 @@ pocl_cgra_init_device_ops(struct pocl_device_ops *ops)
   ops->probe = pocl_cgra_probe;
   ops->init = pocl_cgra_init;
   ops->build_hash = pocl_cgra_build_hash;
+  ops->build_source = pocl_cgra_build_source;
+  ops->run = pocl_cgra_run;
 
   // Control
   ops->submit = pocl_cgra_submit;
   ops->join = pocl_cgra_join;
   ops->flush = pocl_cgra_flush;
+  ops->broadcast = pocl_cgra_broadcast;
 
   // Memory
   ops->alloc_mem_obj = pocl_cgra_alloc_mem_obj;
   ops->free = pocl_cgra_free;
   ops->map_mem = pocl_cgra_map_mem;
   ops->write = pocl_cgra_write;
-  ops->read = pocl_cgra_read;
-
-  // Events
-  ops->broadcast = pocl_cgra_broadcast;
+  ops->read = pocl_cgra_read;  
 }
 
 unsigned int
@@ -95,6 +95,7 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   device->profile = "FULL_PROFILE";
 
   device->global_mem_id = 0;
+  device->local_mem_size = 1024 * 1024 * 8;
   device->image_support = CL_FALSE;
 
   device->max_compute_units = 1;
@@ -111,8 +112,8 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
 
   d->available = CL_TRUE;
   device->available = &(d->available);
-  device->compiler_available = CL_FALSE;
-  device->linker_available = CL_FALSE;
+  device->compiler_available = CL_TRUE;
+  device->linker_available = CL_TRUE;
   device->data = (void *)d;
 
   printf("CGRA::init\n");
@@ -124,6 +125,7 @@ cl_int pocl_cgra_alloc_mem_obj(cl_device_id device, cl_mem mem_obj, void *host_p
   cl_int ret = CL_SUCCESS;
   printf("CGRA::alloc_mem_obj\n");
   printf("device gmemID = %d\n", device->global_mem_id);
+  
   /* if we share global memory with CPU, let the CPU driver allocate it */
   if (device->global_mem_id == 0)
     return pocl_driver_alloc_mem_obj (device, mem_obj, host_ptr);
@@ -256,8 +258,8 @@ pocl_cgra_submit (_cl_command_node *node, cl_command_queue cq)
     node->state = POCL_COMMAND_READY;
     POCL_LOCK (data->cq_lock);
     pocl_command_push(node, &data->ready_list, &data->command_list);
-	POCL_UNLOCK_OBJ (node->sync.event.event);
-	cgra_schedule_command(data);
+	  POCL_UNLOCK_OBJ (node->sync.event.event);
+    cgra_schedule_command(data);
     POCL_UNLOCK (data->cq_lock);
   }
 }
@@ -272,4 +274,24 @@ void
 pocl_cgra_flush (cl_device_id device, cl_command_queue cq)
 {
   printf("CGRA::flush\n");
+}
+
+void
+pocl_cgra_run (void *data, _cl_command_node *cmd)
+{
+  printf("CGRA::run\n");
+}
+
+int
+pocl_cgra_build_source (cl_program program, cl_uint device_i,
+      /* these are filled by clCompileProgram(), otherwise NULLs */
+      cl_uint num_input_headers, const cl_program *input_headers,
+      const char **header_include_names,
+      /* 1 = compile & link, 0 = compile only, linked later via clLinkProgram*/
+      int link_program)
+{
+  printf("CGRA::build_from_source\n");
+  // Mock
+  pocl_driver_build_source(program, device_i, num_input_headers, input_headers, header_include_names, link_program);
+  return 0;
 }
