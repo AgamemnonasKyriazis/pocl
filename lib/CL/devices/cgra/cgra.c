@@ -49,7 +49,16 @@ pocl_cgra_init_device_ops(struct pocl_device_ops *ops)
   ops->probe = pocl_cgra_probe;
   ops->init = pocl_cgra_init;
   ops->build_hash = pocl_cgra_build_hash;
+
+  ops->setup_metadata = pocl_setup_builtin_metadata;
   ops->build_source = pocl_cgra_build_source;
+  ops->build_binary = NULL;
+  ops->link_program = NULL;
+  ops->build_builtin = NULL;
+  // ops->link_program = pocl_cgra_link_program;
+  // ops->build_binary = pocl_cgra_build_binary;
+  // ops->build_builtin = pocl_cgra_build_builtin;
+  
   ops->run = pocl_cgra_run;
 
   // Control
@@ -113,7 +122,7 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   d->available = CL_TRUE;
   device->available = &(d->available);
   device->compiler_available = CL_TRUE;
-  device->linker_available = CL_TRUE;
+  device->linker_available = CL_FALSE;
   device->data = (void *)d;
 
   printf("CGRA::init\n");
@@ -290,8 +299,39 @@ pocl_cgra_build_source (cl_program program, cl_uint device_i,
       /* 1 = compile & link, 0 = compile only, linked later via clLinkProgram*/
       int link_program)
 {
-  printf("CGRA::build_from_source\n");
-  // Mock
-  pocl_driver_build_source(program, device_i, num_input_headers, input_headers, header_include_names, link_program);
+  cl_device_id device = program->devices[device_i];
+  int _compile_program = device->compiler_available;
+  int _link_program    = device->linker_available;
+  // program->build_hash  = NULL;
+  printf("CGRA::build_from_source::COMPILE:%d::LINK:%d\n", _compile_program, _link_program);
+  // pocl_driver_build_source(program, device_i, num_input_headers, input_headers, header_include_names, _link_program);
   return 0;
 }
+
+// int pocl_cgra_build_binary (
+//       cl_program program, cl_uint device_i,
+//       /* 1 = compile & link, 0 = compile only, linked later via clLinkProgram*/
+//       int link_program, int spir_build)
+// {
+//   printf("CGRA::build_binary");
+//   return 0;
+// }
+
+// int pocl_cgra_link_program (
+//   cl_program program, cl_uint device_i,
+//   cl_uint num_input_programs,
+//   const cl_program *input_programs,
+//   /* 1 = create library, 0 = create executable*/
+//   int create_library)
+// {
+//   printf("CGRA::link_program");
+//   return 0;
+// }
+
+// int pocl_cgra_build_builtin (
+//   cl_program program, 
+//   cl_uint device_i) 
+// {
+//   printf("CGRA::build_builtin");
+//   return CL_SUCCESS;
+// }
