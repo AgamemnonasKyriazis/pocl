@@ -52,11 +52,11 @@ pocl_cgra_init_device_ops(struct pocl_device_ops *ops)
 
   ops->setup_metadata = pocl_setup_builtin_metadata;
   ops->build_source = pocl_cgra_build_source;
-  ops->build_binary = NULL;
   ops->link_program = NULL;
+  // ops->build_binary = NULL;
   ops->build_builtin = NULL;
   // ops->link_program = pocl_cgra_link_program;
-  // ops->build_binary = pocl_cgra_build_binary;
+  ops->build_binary = pocl_cgra_build_binary;
   // ops->build_builtin = pocl_cgra_build_builtin;
   
   ops->run = pocl_cgra_run;
@@ -308,14 +308,14 @@ pocl_cgra_build_source (cl_program program, cl_uint device_i,
   return 0;
 }
 
-// int pocl_cgra_build_binary (
-//       cl_program program, cl_uint device_i,
-//       /* 1 = compile & link, 0 = compile only, linked later via clLinkProgram*/
-//       int link_program, int spir_build)
-// {
-//   printf("CGRA::build_binary");
-//   return 0;
-// }
+int pocl_cgra_build_binary (
+      cl_program program, cl_uint device_i,
+      /* 1 = compile & link, 0 = compile only, linked later via clLinkProgram*/
+      int link_program, int spir_build)
+{
+  printf("CGRA::build_binary");
+  return CL_SUCCESS;
+}
 
 // int pocl_cgra_link_program (
 //   cl_program program, cl_uint device_i,
