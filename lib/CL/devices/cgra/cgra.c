@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "common_driver.h"
+#include "common_utils.h"
 
 #include "config.h"
 #include "config2.h"
@@ -91,13 +92,14 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   cl_int ret = CL_SUCCESS;
 
   pocl_init_default_device_infos(device, "");
+  pocl_cpu_init_common(device);
   pocl_setup_device_for_system_memory(device);
 
   device->type = CL_DEVICE_TYPE_ACCELERATOR;
   device->long_name = (char *)"mm-reconfigurable-accelerator-device";
   device->short_name = "cgra";
   device->vendor = "CGRA PoCL";
-  device->version = "OpenCL 3.0 PoCL";
+  device->version = "OpenCL 1.2 PoCL";
   device->extensions = "";
   device->profile = "FULL_PROFILE";
 
@@ -111,7 +113,7 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   device->max_work_item_sizes[0] = \
   device->max_work_item_sizes[1] = \
   device->max_work_item_sizes[2] = 1;
-
+  
   pocl_cgra_data_t *d;
   d = (pocl_cgra_data_t *)calloc (1, sizeof (pocl_cgra_data_t));
   if (d == NULL)
@@ -122,6 +124,16 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   device->compiler_available = CL_TRUE;
   device->linker_available = CL_TRUE;
   device->data = (void *)d;
+
+  /* LLVM */
+  device->address_bits = 32;
+  // LLVM target
+  device->llvm_target_triplet = strdup("x86_64-linux-gnu");
+  device->llvm_cpu = strdup("x86-64");
+  device->extensions = strdup("");
+  device->double_fp_config = 0;
+  device->preferred_vector_width_double = 0;
+  device->native_vector_width_double = 0;
 
   printf("CGRA::init\n");
   return ret;
@@ -200,7 +212,7 @@ pocl_cgra_read (void *data,
 void
 pocl_cgra_broadcast (cl_event event)
 {
-  printf("broadcasting\n");
+  printf("CGRA::broadcasting\n");
   pocl_broadcast(event);
 }
 
@@ -259,16 +271,14 @@ pocl_cgra_submit (_cl_command_node *node, cl_command_queue cq)
   {
 
   }
-  else
-  {
-    pocl_cgra_data_t *data = node->device->data;
-    node->state = POCL_COMMAND_READY;
-    POCL_LOCK (data->cq_lock);
-    pocl_command_push(node, &data->ready_list, &data->command_list);
-	  POCL_UNLOCK_OBJ (node->sync.event.event);
-    cgra_schedule_command(data);
-    POCL_UNLOCK (data->cq_lock);
-  }
+
+  pocl_cgra_data_t *data = node->device->data;
+  node->state = POCL_COMMAND_READY;
+  POCL_LOCK (data->cq_lock);
+  pocl_command_push(node, &data->ready_list, &data->command_list);
+  POCL_UNLOCK_OBJ (node->sync.event.event);
+  cgra_schedule_command(data);
+  POCL_UNLOCK (data->cq_lock);
 }
 
 void
@@ -297,15 +307,14 @@ pocl_cgra_build_source (cl_program program, cl_uint device_i,
       /* 1 = compile & link, 0 = compile only, linked later via clLinkProgram*/
       int link_program)
 {
+
   cl_device_id device = program->devices[device_i];
   int _compile_program = device->compiler_available;
   int _link_program    = device->linker_available;
-  // program->build_hash  = NULL;
-  // pocl_cache_create_program_cachedir(program, device_i, NULL, 0, NULL);
   printf("CGRA::build_from_source::COMPILE:%d::LINK:%d\n", _compile_program, _link_program);
-  pocl_driver_build_source(program, device_i, num_input_headers, input_headers, header_include_names, _link_program);
-  return CL_SUCCESS;
+  return pocl_driver_build_source(program, device_i, num_input_headers, input_headers, header_include_names, _link_program);
 }
+
 int pocl_cgra_setup_metadata (
   cl_device_id device, 
   cl_program program, 
@@ -313,9 +322,8 @@ int pocl_cgra_setup_metadata (
 )
 {
   printf("CGRA::setup_metadata\n");
-  return CL_SUCCESS;
+  return pocl_driver_setup_metadata(device, program, program_device_i);
 }
-
 
 int
 pocl_cgra_compile_kernel (
