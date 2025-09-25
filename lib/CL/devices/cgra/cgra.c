@@ -50,14 +50,12 @@ pocl_cgra_init_device_ops(struct pocl_device_ops *ops)
   ops->init = pocl_cgra_init;
   ops->build_hash = pocl_cgra_build_hash;
 
-  ops->setup_metadata = pocl_setup_builtin_metadata;
+  ops->setup_metadata = pocl_cgra_setup_metadata;
   ops->build_source = pocl_cgra_build_source;
   ops->link_program = NULL;
-  // ops->build_binary = NULL;
+  ops->build_binary = NULL;
   ops->build_builtin = NULL;
-  // ops->link_program = pocl_cgra_link_program;
-  ops->build_binary = pocl_cgra_build_binary;
-  // ops->build_builtin = pocl_cgra_build_builtin;
+  ops->compile_kernel = pocl_cgra_compile_kernel;
   
   ops->run = pocl_cgra_run;
 
@@ -122,7 +120,7 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   d->available = CL_TRUE;
   device->available = &(d->available);
   device->compiler_available = CL_TRUE;
-  device->linker_available = CL_FALSE;
+  device->linker_available = CL_TRUE;
   device->data = (void *)d;
 
   printf("CGRA::init\n");
@@ -303,35 +301,31 @@ pocl_cgra_build_source (cl_program program, cl_uint device_i,
   int _compile_program = device->compiler_available;
   int _link_program    = device->linker_available;
   // program->build_hash  = NULL;
+  // pocl_cache_create_program_cachedir(program, device_i, NULL, 0, NULL);
   printf("CGRA::build_from_source::COMPILE:%d::LINK:%d\n", _compile_program, _link_program);
-  // pocl_driver_build_source(program, device_i, num_input_headers, input_headers, header_include_names, _link_program);
-  return 0;
+  pocl_driver_build_source(program, device_i, num_input_headers, input_headers, header_include_names, _link_program);
+  return CL_SUCCESS;
 }
-
-int pocl_cgra_build_binary (
-      cl_program program, cl_uint device_i,
-      /* 1 = compile & link, 0 = compile only, linked later via clLinkProgram*/
-      int link_program, int spir_build)
+int pocl_cgra_setup_metadata (
+  cl_device_id device, 
+  cl_program program, 
+  unsigned int program_device_i
+)
 {
-  printf("CGRA::build_binary");
+  printf("CGRA::setup_metadata\n");
   return CL_SUCCESS;
 }
 
-// int pocl_cgra_link_program (
-//   cl_program program, cl_uint device_i,
-//   cl_uint num_input_programs,
-//   const cl_program *input_programs,
-//   /* 1 = create library, 0 = create executable*/
-//   int create_library)
-// {
-//   printf("CGRA::link_program");
-//   return 0;
-// }
 
-// int pocl_cgra_build_builtin (
-//   cl_program program, 
-//   cl_uint device_i) 
-// {
-//   printf("CGRA::build_builtin");
-//   return CL_SUCCESS;
-// }
+int
+pocl_cgra_compile_kernel (
+  _cl_command_node *cmd,
+  cl_kernel kernel,
+  cl_device_id device,
+  int specialize
+)
+{
+  printf("CGRA::compile_kernel\n");
+  return CL_SUCCESS;
+}
+
