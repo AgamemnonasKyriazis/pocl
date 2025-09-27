@@ -28,6 +28,17 @@
 #include "pocl_timing.h"
 #include "pocl_workgroup_func.h"
 
+const char * _long_name  = "Memory Mapped Reconfigurable Accelerator";
+const char * _short_name = "cgra";
+const char * _vendor     = "PoCL";
+const char * _version    = "OpenCL 1.2 PoCL";
+const char * _extensions = "\0";
+const char * _profile    = "FULL_PROFILE";
+const char * _hash_str   = "cgmmra-linux-gnu";
+
+#define L_MEM_SIZE (1024*1024*8)
+#define IMAGE_SUPPORT CL_FALSE
+
 typedef struct
 {
   /* List of commands ready to be executed */
@@ -46,7 +57,7 @@ typedef struct
 void
 pocl_cgra_init_device_ops(struct pocl_device_ops *ops)
 {
-  ops->device_name = "cgra";
+  ops->device_name = _short_name;
   ops->probe = pocl_cgra_probe;
   ops->init = pocl_cgra_init;
   ops->build_hash = pocl_cgra_build_hash;
@@ -96,16 +107,16 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   pocl_setup_device_for_system_memory(device);
 
   device->type = CL_DEVICE_TYPE_ACCELERATOR;
-  device->long_name = (char *)"mm-reconfigurable-accelerator-device";
-  device->short_name = "cgra";
-  device->vendor = "CGRA PoCL";
-  device->version = "OpenCL 1.2 PoCL";
-  device->extensions = "";
-  device->profile = "FULL_PROFILE";
+  device->long_name = _long_name;
+  device->short_name = _short_name;
+  device->vendor = _vendor;
+  device->version = _version;
+  device->extensions = _extensions;
+  device->profile = _profile;
 
   device->global_mem_id = 0;
-  device->local_mem_size = 1024 * 1024 * 8;
-  device->image_support = CL_FALSE;
+  device->local_mem_size = L_MEM_SIZE;
+  device->image_support = IMAGE_SUPPORT;
 
   device->max_compute_units = 1;
   device->max_work_group_size = 3;
@@ -182,7 +193,7 @@ char *
 pocl_cgra_build_hash (cl_device_id device)
 {
   char *res = calloc(1000, sizeof(char));
-  snprintf (res, 1000, "cgra-runtime");
+  snprintf (res, 1000, _hash_str);
   return res;
 }
 
