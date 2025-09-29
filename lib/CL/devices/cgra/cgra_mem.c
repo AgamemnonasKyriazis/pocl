@@ -20,7 +20,7 @@ int cgra_write_to_device (
   }
 
   for (int i = 0; i < wlen; i+=1) {
-    printf("0x%0x\n", *(ptr+i))
+    printf("0x%0x\n", *(ptr+i));
     ret = pwrite(usr_fd, ptr+i, sizeof(uint32_t), DEVICE_MEM_BASE_ADDR+(i*4));
     if (ret <= 0 && size != 0) {
       perror("Write Error");
