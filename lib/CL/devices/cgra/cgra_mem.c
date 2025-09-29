@@ -49,22 +49,42 @@ int cgra_stream_from_device (void * host_ptr, size_t size)
     return rlen;
 }
 
-int cgra_write_to_device (const void * __restrict__ host_ptr, size_t size)
+int cgra_write_to_device (
+    void *data, const void *__restrict__ host_ptr,
+    pocl_mem_identifier *dst_mem_id, cl_mem dst_buf,
+    size_t offset, size_t size)
 {
-    if (host_ptr == NULL)
-        return -1;
-    printf("CGRA::MemWrite To Device %lx - %lu\n", (uint64_t*)host_ptr, size);
-    uint32_t wlen = 0;
-    wlen = pwrite(usr_fd, (uint64_t*)host_ptr, sizeof(uint64_t)*size, DEVICE_MEM_BASE_ADDR);
-    return wlen;
+  if (host_ptr == NULL)
+    return -1;
+  
+  void *__restrict__ device_ptr = dst_mem_id->mem_ptr;
+
+  if (host_ptr == device_ptr)
+    return size;
+
+  printf("CGRA::MemWrite To Device %lx - %lu\n", (uint64_t*)host_ptr, size);
+  uint32_t wlen = 0;
+  wlen = pwrite(usr_fd, (uint64_t*)((char *)device_ptr + offset), sizeof(uint64_t)*size, DEVICE_MEM_BASE_ADDR);
+  // memcpy ((char *)device_ptr + offset, host_ptr, size);
+  return wlen;
 }
 
-int cgra_read_from_device (void * __restrict__ host_ptr, size_t size)
+int cgra_read_from_device (
+    void *data, void *__restrict__ host_ptr,
+    pocl_mem_identifier *src_mem_id, cl_mem src_buf,
+    size_t offset, size_t size)
 {
-    if (host_ptr == NULL)
-        return -1;
-    printf("CGRA::MemRead From Device %lx - %lu\n", (uint64_t*)host_ptr, size);
-    uint32_t rlen = 0;
-    rlen = pread(usr_fd, (uint64_t*)host_ptr, sizeof(uint64_t)*size, DEVICE_MEM_BASE_ADDR);
-    return rlen;
+  if (host_ptr == NULL)
+    return -1;
+  
+  void *__restrict__ device_ptr = src_mem_id->mem_ptr;
+
+  if (host_ptr == device_ptr)
+    return size;
+
+  printf("CGRA::MemWrite To Device %lx - %lu\n", (uint64_t*)host_ptr, size);
+  uint32_t wlen = 0;
+  wlen = pwrite(usr_fd, (uint64_t*)host_ptr, sizeof(uint64_t)*size, DEVICE_MEM_BASE_ADDR);
+  memcpy ((char *)device_ptr + offset, host_ptr, size);
+  return wlen;
 }

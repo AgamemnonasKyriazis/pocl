@@ -209,7 +209,7 @@ pocl_cgra_write (void *data,
   printf("CGRA::write\n");
   // pocl_driver_write(data, src_host_ptr, dst_mem_id, dst_buf, offset, size);
   int err = 0;
-  err = cgra_write_to_device(src_host_ptr, size);
+  err = cgra_write_to_device(data, src_host_ptr, dst_mem_id, dst_buf, offset, size);
   if (err <= 0) {
     perror("Write to CGRA Device Failed");
   }
@@ -226,7 +226,7 @@ pocl_cgra_read (void *data,
   printf("CGRA::read\n");
   // pocl_driver_read(data, dst_host_ptr, src_mem_id, src_buf, offset, size);
   int err = 0;
-  err = cgra_read_from_device(dst_host_ptr, size);
+  err = cgra_read_from_device(data, dst_host_ptr, src_mem_id, src_buf, offset, size);
   if (err <= 0) {
     perror("Read from CGRA Device Failed");
   }

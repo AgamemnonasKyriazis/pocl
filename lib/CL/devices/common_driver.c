@@ -72,9 +72,11 @@ pocl_driver_read (void *data, void *__restrict__ host_ptr,
                   size_t offset, size_t size)
 {
   void *__restrict__ device_ptr = src_mem_id->mem_ptr;
-  if (host_ptr == device_ptr)
+  if (host_ptr == device_ptr) {
+    printf("same\n");
     return;
-
+  }
+  printf("not same\n");
   memcpy (host_ptr, (char *)device_ptr + offset, size);
 }
 
@@ -84,9 +86,11 @@ pocl_driver_write (void *data, const void *__restrict__ host_ptr,
                    size_t offset, size_t size)
 {
   void *__restrict__ device_ptr = dst_mem_id->mem_ptr;
-  if (host_ptr == device_ptr)
+  if (host_ptr == device_ptr) {
+    printf("same\n");
     return;
-
+  }
+  printf("not same\n");
   memcpy ((char *)device_ptr + offset, host_ptr, size);
 }
 
