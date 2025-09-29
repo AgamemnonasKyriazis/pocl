@@ -63,11 +63,17 @@ int cgra_write_to_device (
     return size;
 
   printf("CGRA::MemWrite To Device %lx - %lu\n", (uint64_t*)host_ptr, size);
-  uint32_t wlen = pwrite(usr_fd, (uint32_t*)(host_ptr), size, DEVICE_MEM_BASE_ADDR);
   
   printf("Write Sanity Check\n");
   for (int i = 0; i < size/(sizeof(uint32_t)); i+=1)
     printf("0x%lx\n", ((uint32_t*)host_ptr)[i]);
+
+  uint32_t wlen = pwrite(usr_fd, (uint32_t*)host_ptr, size, DEVICE_MEM_BASE_ADDR);
+  if (wlen <= 0 && size != 0)
+  {
+    perror("Write Error");
+    return -1;
+  }
   
   return size;
 }
@@ -86,12 +92,17 @@ int cgra_read_from_device (
     return size;
 
   printf("CGRA::MemRead From Device %lx - %lu\n", (uint64_t*)host_ptr, size);
-  uint32_t rlen = pread(usr_fd, (uint32_t*)((char *)device_ptr + offset), size, DEVICE_MEM_BASE_ADDR);
+  
+  uint32_t rlen = pread(usr_fd, (uint32_t*)host_ptr, size, DEVICE_MEM_BASE_ADDR);
+  if (rlen <= 0 && size != 0)
+  {
+    perror("Read Error");
+    return -1;
+  }
   
   printf("Read Sanity Check\n");
   for (int i = 0; i < size/(sizeof(uint32_t)); i+=1)
-    printf("0x%lx\n", ((uint32_t*)((char *)device_ptr + offset))[i]);
+    printf("0x%lx\n", ((uint32_t*)host_ptr)[i]);
   
-  memcpy (host_ptr, (char *)device_ptr + offset, size);
   return size;
 }
