@@ -63,10 +63,12 @@ int cgra_write_to_device (
     return size;
 
   printf("CGRA::MemWrite To Device %lx - %lu\n", (uint64_t*)host_ptr, size);
-  uint32_t wlen = 0;
-  wlen = pwrite(usr_fd, (uint64_t*)((char *)device_ptr + offset), sizeof(uint64_t)*size, DEVICE_MEM_BASE_ADDR);
-  // memcpy ((char *)device_ptr + offset, host_ptr, size);
-  return wlen;
+  uint32_t wlen = pwrite(usr_fd, (uint32_t*)(host_ptr), size, DEVICE_MEM_BASE_ADDR);
+  
+//   for (int i = 0; i < size/(sizeof(uint32_t)); i+=1)
+//     printf("0x%lx\n", ((uint32_t*)host_ptr)[i]);
+  
+  return size;
 }
 
 int cgra_read_from_device (
@@ -82,9 +84,11 @@ int cgra_read_from_device (
   if (host_ptr == device_ptr)
     return size;
 
-  printf("CGRA::MemWrite To Device %lx - %lu\n", (uint64_t*)host_ptr, size);
-  uint32_t wlen = 0;
-  wlen = pwrite(usr_fd, (uint64_t*)host_ptr, sizeof(uint64_t)*size, DEVICE_MEM_BASE_ADDR);
-  memcpy ((char *)device_ptr + offset, host_ptr, size);
-  return wlen;
+  printf("CGRA::MemRead From Device %lx - %lu\n", (uint64_t*)host_ptr, size);
+  uint32_t rlen = pread(usr_fd, (uint32_t*)((char *)device_ptr + offset), size, DEVICE_MEM_BASE_ADDR);
+  
+//   for (int i = 0; i < size/(sizeof(uint32_t)); i+=1)
+//     printf("0x%lx\n", ((uint32_t*)((char *)device_ptr + offset))[i]);
+  
+  return size;
 }
