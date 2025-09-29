@@ -2,7 +2,9 @@
 
 int usr_fd;
 
-uint32_t wbuf[] = {
+#define N 16
+
+uint32_t wbuf[N] = {
     0x00000000,
     0x11111111,
     0x22222222,
@@ -21,7 +23,7 @@ uint32_t wbuf[] = {
     0xffffffff,
 };
 
-uint32_t rbuf[sizeof(wbuf)] = {0};
+uint32_t rbuf[N] = {0};
 
 int cgra_write_to_device (
     void *data, const void *__restrict__ host_ptr,
@@ -48,7 +50,7 @@ int cgra_write_to_device (
     return -1;
   }
 
-  int wlen = pwrite(usr_fd, (uint32_t*)wbuf, size, DEVICE_MEM_BASE_ADDR);
+  int wlen = pwrite(usr_fd, (uint32_t*)wbuf, N*sizeof(uint32_t), DEVICE_MEM_BASE_ADDR);
   if (wlen <= 0 && size != 0)
   {
     perror("Write Error");
@@ -81,7 +83,7 @@ int cgra_read_from_device (
     return -1;
   }
 
-  int rlen = pread(usr_fd, (uint32_t*)rbuf, size, DEVICE_MEM_BASE_ADDR);
+  int rlen = pread(usr_fd, (uint32_t*)rbuf, N*sizeof(uint32_t), DEVICE_MEM_BASE_ADDR);
   if (rlen <= 0 && size != 0)
   {
     perror("Read Error");
