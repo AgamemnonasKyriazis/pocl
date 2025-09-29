@@ -102,10 +102,7 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
 {
   cl_int ret = CL_SUCCESS;
   
-  ret = cgra_mem_init();
-  if (ret < 0) {
-    return CL_MAP_FAILURE;
-  }
+  cgra_mem_init();
 
   pocl_init_default_device_infos(device, "");
   pocl_cpu_init_common(device);
@@ -210,7 +207,7 @@ pocl_cgra_write (void *data,
                  size_t offset, size_t size)
 {
   printf("CGRA::write\n");
-  pocl_driver_write(data, src_host_ptr, dst_mem_id, dst_buf, offset, size);
+  // pocl_driver_write(data, src_host_ptr, dst_mem_id, dst_buf, offset, size);
   int err = 0;
   err = cgra_write_to_device(src_host_ptr, size);
   if (err <= 0) {
@@ -227,7 +224,7 @@ pocl_cgra_read (void *data,
                 size_t size)
 {
   printf("CGRA::read\n");
-  pocl_driver_read(data, dst_host_ptr, src_mem_id, src_buf, offset, size);
+  // pocl_driver_read(data, dst_host_ptr, src_mem_id, src_buf, offset, size);
   int err = 0;
   err = cgra_read_from_device(dst_host_ptr, size);
   if (err <= 0) {
