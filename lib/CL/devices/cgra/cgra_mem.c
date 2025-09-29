@@ -7,6 +7,10 @@ int cgra_write_to_device (
     pocl_mem_identifier *dst_mem_id, cl_mem dst_buf,
     size_t offset, size_t size)
 {
+  uint32_t * ptr = (uint32_t *)host_ptr;
+  uint32_t wlen  = size/(sizeof(uint32_t));
+  int ret = 0;
+
   printf("CGRA::MemWrite To Device %lx - %lu\n", (uint64_t*)host_ptr, size);
 
   usr_fd = open("/dev/xdma0_user", O_RDWR | O_SYNC);
@@ -14,15 +18,14 @@ int cgra_write_to_device (
     perror("open user");
     return -1;
   }
-  
-  uint32_t wdata = 0x11111111;
-  int wlen = pwrite(usr_fd, &wdata, sizeof(uint32_t), DEVICE_MEM_BASE_ADDR);
-  if (wlen <= 0 && size != 0)
-  {
-    perror("Write Error");
-    return -1;
+
+  for (int i = 0; i < wlen; i+=1) {
+    ret = pwrite(usr_fd, ptr+i, sizeof(uint32_t), DEVICE_MEM_BASE_ADDR);
+    if (ret <= 0 && size != 0) {
+      perror("Write Error");
+      return -1;
+    }
   }
-  printf("wdata=%x\n", wdata);
   
   close(usr_fd);
 
@@ -34,6 +37,10 @@ int cgra_read_from_device (
     pocl_mem_identifier *src_mem_id, cl_mem src_buf,
     size_t offset, size_t size)
 {
+  uint32_t * ptr = (uint32_t *)host_ptr;
+  uint32_t rlen  = size/(sizeof(uint32_t));
+  int ret = 0;
+
   printf("CGRA::MemRead From Device %lx - %lu\n", (uint64_t*)host_ptr, size);
 
   usr_fd = open("/dev/xdma0_user", O_RDWR | O_SYNC);
@@ -42,14 +49,13 @@ int cgra_read_from_device (
     return -1;
   }
 
-  uint32_t rdata = 0;
-  int rlen = pread(usr_fd, &rdata, sizeof(uint32_t), DEVICE_MEM_BASE_ADDR);
-  if (rlen <= 0 && size != 0)
-  {
-    perror("Read Error");
-    return -1;
+  for (int i = 0; i < rlen; i+=1) {
+    ret = pread(usr_fd, ptr+i, sizeof(uint32_t), DEVICE_MEM_BASE_ADDR);
+    if (ret <= 0 && size != 0) {
+      perror("Read Error");
+      return -1;
+    }
   }
-  printf("rdata=%x\n", rdata);
 
   close(usr_fd);
   
