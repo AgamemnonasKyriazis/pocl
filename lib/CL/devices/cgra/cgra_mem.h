@@ -17,11 +17,6 @@
 
 #define DEVICE_MEM_BASE_ADDR 0x2000u
 
-int cgra_mem_init ();
-
-int cgra_mem_stream_to_device (void * host_ptr, size_t size);
-int cgra_stream_from_device (void * host_ptr, size_t size);
-
 int cgra_write_to_device (
     void *data, const void *__restrict__ host_ptr,
     pocl_mem_identifier *dst_mem_id, cl_mem dst_buf,
