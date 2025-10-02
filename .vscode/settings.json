@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "pocl_cache.h": "c"
+        "*.py": "python",
+        "pocl_cache.h": "c",
+        "iostream": "cpp"
     }
 }

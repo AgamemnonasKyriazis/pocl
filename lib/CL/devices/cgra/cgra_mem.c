@@ -60,3 +60,32 @@ int cgra_read_from_device (
   
   return size;
 }
+
+#define MEM_BASE_ADDR 0x2000UL
+#define MEM_SIZE      0x2000UL
+memory_region_t * alloc_regions;
+
+cl_int cgra_init_device () {
+  alloc_regions = (memory_region_t *)calloc(1, sizeof(memory_region_t));
+  pocl_init_mem_region(alloc_regions, MEM_BASE_ADDR, MEM_SIZE);
+  printf("CGRA::Device Init\n");
+  return CL_SUCCESS;
+}
+
+cl_int cgra_alloc_buffer (pocl_mem_identifier *p, size_t size) {
+
+  assert(p->mem_ptr == NULL);
+  chunk_info_t *chunk = NULL;
+
+  chunk = pocl_alloc_buffer(alloc_regions, size);
+  if (chunk == NULL)
+    return CL_MEM_OBJECT_ALLOCATION_FAILURE;
+
+  printf("CGRA::Allocated %zu bytes from 0x%zx\n", size, chunk->start_address);
+
+  p->mem_ptr = chunk;
+  p->version = 0;
+  p->extra = 0;
+
+  return CL_SUCCESS;
+}
