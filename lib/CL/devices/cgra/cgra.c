@@ -1,5 +1,4 @@
 #include "cgra.h"
-#include "cgra_mem.h"
 #include "cgra_codegen.h"
 #include "xdma.h"
 
