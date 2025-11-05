@@ -44,8 +44,8 @@ const char * _hash_str   = "cgmmra-linux-gnu";
 memory_region_t * alloc_regions;
 
 
-#define MEM_BASE_ADDR 0x00000000UL
-#define G_MEM_SIZE (1024*1024*8)
+#define MEM_BASE_ADDR 0x10000000UL
+#define G_MEM_SIZE (1024*8)
 #define IMAGE_SUPPORT CL_FALSE
 
 typedef struct
@@ -83,7 +83,7 @@ cl_int cgra_alloc_buffer (pocl_mem_identifier *p, size_t size) {
 
   printf("CGRA::Allocated %zu bytes from 0x%zx\n", size, chunk->start_address);
 
-  p->mem_ptr = chunk;
+  p->mem_ptr = (void*)chunk->start_address;
   p->version = 0;
   p->extra = 0;
 
