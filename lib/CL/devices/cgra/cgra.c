@@ -29,6 +29,10 @@
 #include "pocl_timing.h"
 #include "pocl_workgroup_func.h"
 
+#include "pocl_cl.h"
+#include "bufalloc.h"
+#include "pocl_util.h"
+
 const char * _long_name  = "Memory Mapped Reconfigurable Accelerator";
 const char * _short_name = "cgra";
 const char * _vendor     = "PoCL";
