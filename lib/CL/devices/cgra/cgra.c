@@ -1,5 +1,7 @@
 #include "cgra.h"
 #include "cgra_mem.h"
+#include "cgra_codegen.h"
+#include "xdma.h"
 
 #include "common.h"
 #include "common_driver.h"
@@ -36,7 +38,11 @@ const char * _extensions = "\0";
 const char * _profile    = "FULL_PROFILE";
 const char * _hash_str   = "cgmmra-linux-gnu";
 
-#define L_MEM_SIZE (1024*1024*8)
+memory_region_t * alloc_regions;
+
+
+#define MEM_BASE_ADDR 0x00000000UL
+#define G_MEM_SIZE (1024*1024*8)
 #define IMAGE_SUPPORT CL_FALSE
 
 typedef struct
@@ -52,7 +58,34 @@ typedef struct
   void *printf_buffer;
 
   cl_bool available;
+
+  cl_device_id device;
+
 } pocl_cgra_data_t;
+
+cl_int cgra_init_memory_region () {
+  alloc_regions = (memory_region_t *)calloc(1, sizeof(memory_region_t));
+  pocl_init_mem_region(alloc_regions, MEM_BASE_ADDR, G_MEM_SIZE);
+  return CL_SUCCESS;
+}
+
+cl_int cgra_alloc_buffer (pocl_mem_identifier *p, size_t size) {
+
+  assert(p->mem_ptr == NULL);
+  chunk_info_t *chunk = NULL;
+
+  chunk = pocl_alloc_buffer(alloc_regions, size);
+  if (chunk == NULL)
+    return CL_MEM_OBJECT_ALLOCATION_FAILURE;
+
+  printf("CGRA::Allocated %zu bytes from 0x%zx\n", size, chunk->start_address);
+
+  p->mem_ptr = chunk;
+  p->version = 0;
+  p->extra = 0;
+
+  return CL_SUCCESS;
+}
 
 void
 pocl_cgra_init_device_ops(struct pocl_device_ops *ops)
@@ -68,7 +101,7 @@ pocl_cgra_init_device_ops(struct pocl_device_ops *ops)
   ops->build_binary = NULL;
   ops->build_builtin = NULL;
   ops->compile_kernel = pocl_cgra_compile_kernel;
-  
+  ops->supports_binary = pocl_driver_supports_binary;
   ops->run = pocl_cgra_run;
 
   // Control
@@ -105,7 +138,9 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   pocl_init_default_device_infos(device, "");
   pocl_cpu_init_common(device);
   pocl_setup_device_for_system_memory(device);
-
+  cgra_init_memory_region();
+  xdma_init();
+  
   device->type = CL_DEVICE_TYPE_ACCELERATOR;
   device->long_name = _long_name;
   device->short_name = _short_name;
@@ -115,7 +150,7 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   device->profile = _profile;
 
   device->global_mem_id = 0;
-  device->local_mem_size = L_MEM_SIZE;
+  device->global_mem_size = G_MEM_SIZE;
   device->image_support = IMAGE_SUPPORT;
 
   device->max_compute_units = 1;
@@ -135,6 +170,7 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   device->compiler_available = CL_TRUE;
   device->linker_available = CL_TRUE;
   device->data = (void *)d;
+  d->device = device;
 
   /* LLVM */
   device->address_bits = 32;
@@ -155,21 +191,16 @@ cl_int pocl_cgra_alloc_mem_obj(cl_device_id device, cl_mem mem_obj, void *host_p
   cl_int ret = CL_SUCCESS;
   printf("CGRA::alloc_mem_obj\n");
   printf("device gmemID = %d\n", device->global_mem_id);
-  
-  /* if we share global memory with CPU, let the CPU driver allocate it */
-  if (device->global_mem_id == 0)
-    return pocl_driver_alloc_mem_obj (device, mem_obj, host_ptr);
-
-  /* ... otherwise allocate. */
-  printf("local allocate mem obj\n");
   pocl_mem_identifier *p = &mem_obj->device_ptrs[device->global_mem_id];
   pocl_global_mem_t *gmem = device->global_memory;
   pocl_cgra_data_t* d = device->data;
-  void *b = NULL;
-  p->mem_ptr = b;
+  p->mem_ptr = NULL;
   p->version = 0;
+  cgra_alloc_buffer(p, mem_obj->size);
+  printf("CGRA::Memory ptr  -> %p\n", p->mem_ptr);
+  printf("CGRA::Memory size -> %lu\n", mem_obj->size);
 
-  if (b == NULL)
+  if (p->mem_ptr == NULL)
     return CL_MEM_OBJECT_ALLOCATION_FAILURE;
 
   return ret;
@@ -193,7 +224,7 @@ char *
 pocl_cgra_build_hash (cl_device_id device)
 {
   char *res = calloc(1000, sizeof(char));
-  snprintf (res, 1000, _hash_str);
+  snprintf (res, 1000, "%s", _hash_str);
   return res;
 }
 
@@ -206,7 +237,7 @@ pocl_cgra_write (void *data,
 {
   printf("CGRA::write\n");
   int err = 0;
-  err = cgra_write_to_device(data, src_host_ptr, dst_mem_id, dst_buf, offset, size);
+  err = xdma_write_mem((void *)src_host_ptr, size, (void *)(dst_mem_id->mem_ptr));
   if (err <= 0) {
     perror("Write to CGRA Device Failed");
   }
@@ -222,7 +253,7 @@ pocl_cgra_read (void *data,
 {
   printf("CGRA::read\n");
   int err = 0;
-  err = cgra_read_from_device(data, dst_host_ptr, src_mem_id, src_buf, offset, size);
+  err = xdma_read_mem((void *)dst_host_ptr, size, (void *)(src_mem_id->mem_ptr));
   if (err <= 0) {
     perror("Read from CGRA Device Failed");
   }
@@ -248,7 +279,18 @@ cgra_schedule_command(pocl_cgra_data_t *data)
       CDL_DELETE (data->ready_list, node);
       POCL_UNLOCK (data->cq_lock);
       printf("CGRA:exec_in_command\n");
-      pocl_exec_command (node);
+      
+      if (node != NULL && node->type == CL_COMMAND_NDRANGE_KERNEL)
+      {
+        node->device->ops->compile_kernel(node, node->command.run.kernel, node->device, 1);
+        POCL_MSG_PRINT_INFO ("NDrange event %" PRIu64 " launched, remove from readylist\n", node->queue_idx);
+        pocl_cgra_run(data, node);
+      }
+      else
+      {
+        pocl_exec_command (node);
+      }
+      
       printf("CGRA:exec_out_command\n");
       POCL_LOCK (data->cq_lock);
   }
@@ -259,32 +301,7 @@ void
 pocl_cgra_submit (_cl_command_node *node, cl_command_queue cq)
 {
   printf("CGRA::submit-%x-%x\n", node->type, node->command);
-  switch (node->type)
-  {
-	case CL_COMMAND_NDRANGE_KERNEL:
-	  printf("CL_COMMAND_NDRANGE_KERNEL\n");
-	  break;
-    case CL_COMMAND_TASK:
-	  printf("CL_COMMAND_TASK\n");
-	  break;
-	case CL_COMMAND_NATIVE_KERNEL:
-	  printf("CL_COMMAND_NATIVE_KERNEL\n");
-	  break;
-    case CL_COMMAND_READ_BUFFER:
-	  printf("CL_COMMAND_READ_BUFFER\n");
-	  break;
-	case CL_COMMAND_WRITE_BUFFER:
-	  printf("CL_COMMAND_WRITE_BUFFER\n");
-	  break;
-	case CL_COMMAND_COPY_BUFFER:
-	  printf("CL_COMMAND_COPY_BUFFER\n");
-	  break;
-	case CL_COMMAND_MAP_BUFFER:
-	  printf("CL_COMMAND_MAP_BUFFER\n");
-    default:
-      printf("Unknown command type type::%x command::%x\n", node->type, node->command);
-	  break;
-  }
+	printf("%s\n", pocl_command_to_str(node->type));
 
   if (node->type == CL_COMMAND_NDRANGE_KERNEL)
   {
@@ -295,6 +312,7 @@ pocl_cgra_submit (_cl_command_node *node, cl_command_queue cq)
   node->state = POCL_COMMAND_READY;
   POCL_LOCK (data->cq_lock);
   pocl_command_push(node, &data->ready_list, &data->command_list);
+
   POCL_UNLOCK_OBJ (node->sync.event.event);
   cgra_schedule_command(data);
   POCL_UNLOCK (data->cq_lock);
@@ -310,12 +328,10 @@ void
 pocl_cgra_flush (cl_device_id device, cl_command_queue cq)
 {
   printf("CGRA::flush\n");
-}
-
-void
-pocl_cgra_run (void *data, _cl_command_node *cmd)
-{
-  printf("CGRA::run\n");
+  pocl_cgra_data_t *data = (pocl_cgra_data_t *)device->data;
+  POCL_LOCK (data->cq_lock);
+  cgra_schedule_command (data);
+  POCL_UNLOCK (data->cq_lock);
 }
 
 int
@@ -353,6 +369,61 @@ pocl_cgra_compile_kernel (
 )
 {
   printf("CGRA::compile_kernel\n");
+  
+  if (cmd == NULL || cmd->type != CL_COMMAND_NDRANGE_KERNEL)
+    return CL_INVALID_OPERATION;
+
+  // char * saved_name;
+  // pocl_sanitize_builtin_kernel_name (kernel, &saved_name);
+  // void *handle = pocl_check_kernel_dlhandle_cache (cmd, CL_FALSE, specialize);
+  // pocl_restore_builtin_kernel_name (kernel, saved_name);
+
+  char cache_dir[POCL_MAX_PATHNAME_LENGTH];
+  pocl_cache_program_path(cache_dir, kernel->program, cmd->program_device_i);
+  // pocl_cache_kernel_cachedir_path(cache_dir, kernel->program,
+  //                                 cmd->program_device_i,
+  //                                 kernel, "", cmd, specialize);
+  printf("%s\n", cache_dir);
+  
+  char program_bc_path[POCL_MAX_PATHNAME_LENGTH];
+  snprintf(program_bc_path, POCL_MAX_PATHNAME_LENGTH, "%s/program.bc", cache_dir);
+
+  char *bc = NULL; size_t bc_size = 0;
+  if (pocl_read_file(program_bc_path, (char**)&bc, &bc_size) != 0) {
+    perror("CL_BUILD_PROGRAM_FAILURE\n");
+    return CL_BUILD_PROGRAM_FAILURE;
+  }
+
+  const size_t *LS = cmd->command.run.pc.local_size;            // [lx, ly, lz]
+  const size_t *NG = cmd->command.run.pc.num_groups;            // [gx, gy, gz] in WGs
+  size_t GWS[3] = { NG[0]*LS[0], NG[1]*LS[1], NG[2]*LS[2] };    // global work-items
+  const size_t *GO = cmd->command.run.pc.global_offset;         // optional use
+  unsigned WD = cmd->command.run.pc.work_dim;                   // or cmd->command.run.work_dim
+
+  const char *kname = kernel->name;
+  pocl_kernel_metadata_t *kmd = kernel->meta;
+  cl_program prog = kernel->program;
+  printf("%lu-%lu-%lu %s\n", GWS[0], GWS[1], GWS[2], kname);
+
+  char entry[4096];
+  snprintf(entry, 4096, "%s", kname);
+
+  const char *out = getenv("CGRA_DFG_OUT");
+  if (!out)
+    out = "/tmp/pocl/dfg.dot";
+  
+  int rc = cgra_dump_dfg_from_wgf_bc(bc, bc_size, entry, out);
+  
+  char exec_cmd[4096];
+  snprintf(exec_cmd, sizeof(exec_cmd), "opt %s -passes=cgra -disable-output", program_bc_path);
+  
+  system(exec_cmd);
+  
   return CL_SUCCESS;
 }
 
+void
+pocl_cgra_run (void *data, _cl_command_node *cmd)
+{
+  printf("CGRA::run\n");
+}
