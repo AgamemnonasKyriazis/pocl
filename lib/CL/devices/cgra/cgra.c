@@ -478,31 +478,31 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
 {
   printf("CGRA::run\n");
 
-  // cl_kernel kernel = cmd->command.run.kernel;
-  // const char *kname = kernel->name;
-  // char fp[POCL_MAX_PATHNAME_LENGTH];
+  cl_kernel kernel = cmd->command.run.kernel;
+  const char *kname = kernel->name;
+  char fp[POCL_MAX_PATHNAME_LENGTH];
 
-  // char cache_dir[POCL_MAX_PATHNAME_LENGTH];
-  // pocl_cache_program_path(cache_dir, kernel->program, cmd->program_device_i);
-  // snprintf(fp, POCL_MAX_PATHNAME_LENGTH, "%s/%s.cfg", cache_dir, kname);
-  // printf("%s\n", fp);
-  // int fdi = open(fp, O_RDONLY);
-  // if (fdi < 0)
-  //   perror("Failed to open configuration file ");
+  char cache_dir[POCL_MAX_PATHNAME_LENGTH];
+  pocl_cache_program_path(cache_dir, kernel->program, cmd->program_device_i);
+  snprintf(fp, POCL_MAX_PATHNAME_LENGTH, "%s/%s.cfg", cache_dir, kname);
+  printf("%s\n", fp);
+  int fdi = open(fp, O_RDONLY);
+  if (fdi < 0)
+    perror("Failed to open configuration file ");
   
-  // bitstream configuration;
-  // read(fdi, &configuration, sizeof(bitstream));
-  // close(fdi);
+  bitstream configuration;
+  read(fdi, &configuration, sizeof(bitstream));
+  close(fdi);
 
-  // rc cluster;    
-  // cluster.id = 0;
-  // cluster.alu0.id = 0x0000u;
-  // cluster.alu1.id = 0x1000u;
-  // cluster.alu2.id = 0x2000u;
-  // cluster.alu3.id = 0x3000u;
-  // cluster.lsu0.id = 0x4000u;
-  // cluster.lsu1.id = 0x5000u;
-  // cluster.ffa0.id = 0x6000u;
+  rc cluster;    
+  cluster.id = 0;
+  cluster.alu0.id = 0x0000u;
+  cluster.alu1.id = 0x1000u;
+  cluster.alu2.id = 0x2000u;
+  cluster.alu3.id = 0x3000u;
+  cluster.lsu0.id = 0x4000u;
+  cluster.lsu1.id = 0x5000u;
+  cluster.ffa0.id = 0x6000u;
 
-  // configure_cluster(&cluster, &configuration);
+  configure_cluster(&cluster, &configuration);
 }
