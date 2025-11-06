@@ -15,6 +15,7 @@ void configure_cluster(rc * c, bitstream * configuration) {
 
     transfer_from_memory(c->lsu0, lsu_0_cfg.src, lsu_0_cfg.src_size);
     transfer_to_memory(c->lsu0, lsu_0_cfg.dst, lsu_0_cfg.dst_size);
+    
     transfer_from_memory(c->lsu1, lsu_1_cfg.src, lsu_1_cfg.src_size);
-    transfer_to_memory(c->lsu0, lsu_1_cfg.dst, lsu_1_cfg.dst_size);
+    transfer_to_memory(c->lsu1, lsu_1_cfg.dst, lsu_1_cfg.dst_size);
 }

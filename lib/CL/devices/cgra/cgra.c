@@ -545,6 +545,14 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
 
   configure_cluster(&cluster, &configuration);
 
+  read_alu_csrs(cluster.alu0);
+  read_alu_csrs(cluster.alu1);
+  read_alu_csrs(cluster.alu2);
+  read_alu_csrs(cluster.alu3);
+  read_lsu_csrs(cluster.lsu0);
+  read_lsu_csrs(cluster.lsu1);
+
+
   // cl_kernel kernel = cmd->command.run.kernel;
   // pocl_kernel_metadata_t *meta = kernel->meta;
   // int num_args = meta->num_args;
