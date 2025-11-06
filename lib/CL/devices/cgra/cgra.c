@@ -492,45 +492,6 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
   
   bitstream configuration;
   read(fdi, &configuration, sizeof(bitstream));
-
-  printf(
-      "alu_0_cfg: op=%u src1=%u src2=%u dstm=%u\n"
-      "alu_1_cfg: op=%u src1=%u src2=%u dstm=%u\n"
-      "alu_2_cfg: op=%u src1=%u src2=%u dstm=%u\n"
-      "alu_3_cfg: op=%u src1=%u src2=%u dstm=%u\n"
-      "lsu_0_cfg: src=%p dst=%p src_size=%zu dst_size=%zu\n"
-      "lsu_1_cfg: src=%p dst=%p src_size=%zu dst_size=%zu\n",
-      (unsigned)configuration.alu_0_cfg.op,
-      (unsigned)configuration.alu_0_cfg.src1,
-      (unsigned)configuration.alu_0_cfg.src2,
-      (unsigned)configuration.alu_0_cfg.dstm,
-
-      (unsigned)configuration.alu_1_cfg.op,
-      (unsigned)configuration.alu_1_cfg.src1,
-      (unsigned)configuration.alu_1_cfg.src2,
-      (unsigned)configuration.alu_1_cfg.dstm,
-
-      (unsigned)configuration.alu_2_cfg.op,
-      (unsigned)configuration.alu_2_cfg.src1,
-      (unsigned)configuration.alu_2_cfg.src2,
-      (unsigned)configuration.alu_2_cfg.dstm,
-
-      (unsigned)configuration.alu_3_cfg.op,
-      (unsigned)configuration.alu_3_cfg.src1,
-      (unsigned)configuration.alu_3_cfg.src2,
-      (unsigned)configuration.alu_3_cfg.dstm,
-
-      (void *)configuration.lsu_0_cfg.src,
-      (void *)configuration.lsu_0_cfg.dst,
-      configuration.lsu_0_cfg.src_size,
-      configuration.lsu_0_cfg.dst_size,
-
-      (void *)configuration.lsu_1_cfg.src,
-      (void *)configuration.lsu_1_cfg.dst,
-      configuration.lsu_1_cfg.src_size,
-      configuration.lsu_1_cfg.dst_size
-  );
-
   close(fdi);
 
   rc cluster;    
