@@ -14,6 +14,15 @@ set(CGRA_SOURCES
 
 	"xdma.c"
 	"xdma.h"
+
+	"ffa.c"
+	"ffa.h"
+	"lsu.c"
+	"lsu.h"
+	"alu.c"
+	"alu.h"
+	"rc.c"
+	"rc.h"
 )
 
 add_pocl_device_library(pocl-devices-cgra ${CGRA_SOURCES})

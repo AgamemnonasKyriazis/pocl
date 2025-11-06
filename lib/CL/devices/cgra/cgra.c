@@ -1,6 +1,9 @@
 #include "cgra.h"
 #include "cgra_codegen.h"
 #include "xdma.h"
+#include "lsu.h"
+#include "alu.h"
+#include "rc.h"
 
 #include "common.h"
 #include "common_driver.h"
@@ -22,6 +25,10 @@
 #include <string.h>
 #include <utlist.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdint.h>
+#include <fcntl.h>
 
 #include "pocl_cache.h"
 #include "pocl_file_util.h"
@@ -376,16 +383,8 @@ pocl_cgra_compile_kernel (
   if (cmd == NULL || cmd->type != CL_COMMAND_NDRANGE_KERNEL)
     return CL_INVALID_OPERATION;
 
-  // char * saved_name;
-  // pocl_sanitize_builtin_kernel_name (kernel, &saved_name);
-  // void *handle = pocl_check_kernel_dlhandle_cache (cmd, CL_FALSE, specialize);
-  // pocl_restore_builtin_kernel_name (kernel, saved_name);
-
   char cache_dir[POCL_MAX_PATHNAME_LENGTH];
   pocl_cache_program_path(cache_dir, kernel->program, cmd->program_device_i);
-  // pocl_cache_kernel_cachedir_path(cache_dir, kernel->program,
-  //                                 cmd->program_device_i,
-  //                                 kernel, "", cmd, specialize);
   printf("%s\n", cache_dir);
   
   char program_bc_path[POCL_MAX_PATHNAME_LENGTH];
@@ -408,20 +407,69 @@ pocl_cgra_compile_kernel (
   cl_program prog = kernel->program;
   printf("%lu-%lu-%lu %s\n", GWS[0], GWS[1], GWS[2], kname);
 
-  char entry[4096];
-  snprintf(entry, 4096, "%s", kname);
+  char entry[POCL_MAX_PATHNAME_LENGTH];
+  snprintf(entry, POCL_MAX_PATHNAME_LENGTH, "%s", kname);
 
-  const char *out = getenv("CGRA_DFG_OUT");
-  if (!out)
-    out = "/tmp/pocl/dfg.dot";
+  // const char *out = getenv("CGRA_DFG_OUT");
+  // if (!out)
+  //   out = "/tmp/pocl/dfg.dot";
   
-  int rc = cgra_dump_dfg_from_wgf_bc(bc, bc_size, entry, out);
+  // int rc = cgra_dump_dfg_from_wgf_bc(bc, bc_size, entry, out);
   
-  char exec_cmd[4096];
-  snprintf(exec_cmd, sizeof(exec_cmd), "opt %s -passes=cgra -disable-output", program_bc_path);
+  // char exec_cmd[4096];
+  // snprintf(exec_cmd, sizeof(exec_cmd), "opt %s -passes=cgra -disable-output", program_bc_path);
   
-  system(exec_cmd);
+  // system(exec_cmd);
   
+  // cl_kernel kernel = cmd->command.run.kernel;
+  pocl_kernel_metadata_t *meta = kernel->meta;
+  int num_args = meta->num_args;
+  pocl_argument * argv = cmd->command.run.arguments;
+
+  printf("argc=%d\n", num_args);
+
+  for (int i = 0; i < num_args; i+=1)
+  {
+    pocl_argument * a = &(argv[i]);
+    struct pocl_argument_info * ai = &(meta->arg_info[i]);
+    const char *arg_name = (ai->name && ai->name[0] != '\0') ? ai->name : "<noname>";
+    printf("arg %u name=%s\n", i, arg_name);
+    
+    switch (ai->type)
+    {
+    case POCL_ARG_TYPE_POINTER:
+      printf("POCL_ARG_TYPE_POINTER\n");
+      pocl_mem_identifier mem = (*(cl_mem *)a->value)->device_ptrs[0];
+      printf("0x%08x\n", mem.mem_ptr);
+      break;
+    
+    case POCL_ARG_TYPE_IMAGE:
+    case POCL_ARG_TYPE_SAMPLER:
+    case POCL_ARG_TYPE_PIPE:
+      break;
+    
+    default:
+      printf("POCL_ARG_TYPE_SCALAR\n");
+      printf("0d%d\n", *(unsigned int*)a->value);
+      break;
+    }
+  }
+
+  char fp[POCL_MAX_PATHNAME_LENGTH];
+  snprintf(fp, POCL_MAX_PATHNAME_LENGTH, "%s/%s.cfg", cache_dir, kname);
+  printf("%s\n", fp);
+  int fdo = open(fp, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+  if (fdo < 0)
+    perror("Failed to write configuration file ");
+  bitstream configuration;
+  configuration.alu_0_cfg.op = ALU_ADD; configuration.alu_0_cfg.src1 = ALU_SRC_0; configuration.alu_0_cfg.src2 = ALU_SRC_1; configuration.alu_0_cfg.dstm = ALU_DST_0;
+  configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_0; configuration.alu_1_cfg.dstm = 0;
+  configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_0; configuration.alu_2_cfg.dstm = 0;
+  configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_0; configuration.alu_3_cfg.dstm = 0;
+  configuration.lsu_0_cfg.src = (uint64_t*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(uint64_t); configuration.lsu_0_cfg.dst = (uint64_t*)(0x10000080); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(uint64_t);
+  configuration.lsu_1_cfg.src = (uint64_t*)(0x10000000); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(uint64_t); configuration.lsu_1_cfg.dst = (uint64_t*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
+  ssize_t wn = write(fdo, &configuration, sizeof(bitstream));
+  close(fdo);
   return CL_SUCCESS;
 }
 
@@ -429,4 +477,166 @@ void
 pocl_cgra_run (void *data, _cl_command_node *cmd)
 {
   printf("CGRA::run\n");
+
+  cl_kernel kernel = cmd->command.run.kernel;
+  const char *kname = kernel->name;
+  char fp[POCL_MAX_PATHNAME_LENGTH];
+
+  char cache_dir[POCL_MAX_PATHNAME_LENGTH];
+  pocl_cache_program_path(cache_dir, kernel->program, cmd->program_device_i);
+  snprintf(fp, POCL_MAX_PATHNAME_LENGTH, "%s/%s.cfg", cache_dir, kname);
+  printf("%s\n", fp);
+  int fdi = open(fp, O_RDONLY);
+  if (fdi < 0)
+    perror("Failed to open configuration file ");
+  
+  bitstream configuration;
+  read(fdi, &configuration, sizeof(bitstream));
+
+  printf(
+      "alu_0_cfg: op=%u src1=%u src2=%u dstm=%u\n"
+      "alu_1_cfg: op=%u src1=%u src2=%u dstm=%u\n"
+      "alu_2_cfg: op=%u src1=%u src2=%u dstm=%u\n"
+      "alu_3_cfg: op=%u src1=%u src2=%u dstm=%u\n"
+      "lsu_0_cfg: src=%p dst=%p src_size=%zu dst_size=%zu\n"
+      "lsu_1_cfg: src=%p dst=%p src_size=%zu dst_size=%zu\n",
+      (unsigned)configuration.alu_0_cfg.op,
+      (unsigned)configuration.alu_0_cfg.src1,
+      (unsigned)configuration.alu_0_cfg.src2,
+      (unsigned)configuration.alu_0_cfg.dstm,
+
+      (unsigned)configuration.alu_1_cfg.op,
+      (unsigned)configuration.alu_1_cfg.src1,
+      (unsigned)configuration.alu_1_cfg.src2,
+      (unsigned)configuration.alu_1_cfg.dstm,
+
+      (unsigned)configuration.alu_2_cfg.op,
+      (unsigned)configuration.alu_2_cfg.src1,
+      (unsigned)configuration.alu_2_cfg.src2,
+      (unsigned)configuration.alu_2_cfg.dstm,
+
+      (unsigned)configuration.alu_3_cfg.op,
+      (unsigned)configuration.alu_3_cfg.src1,
+      (unsigned)configuration.alu_3_cfg.src2,
+      (unsigned)configuration.alu_3_cfg.dstm,
+
+      (void *)configuration.lsu_0_cfg.src,
+      (void *)configuration.lsu_0_cfg.dst,
+      configuration.lsu_0_cfg.src_size,
+      configuration.lsu_0_cfg.dst_size,
+
+      (void *)configuration.lsu_1_cfg.src,
+      (void *)configuration.lsu_1_cfg.dst,
+      configuration.lsu_1_cfg.src_size,
+      configuration.lsu_1_cfg.dst_size
+  );
+
+  close(fdi);
+
+  rc cluster;    
+  cluster.id = 0;
+  cluster.alu0.id = 0x0000u;
+  cluster.alu1.id = 0x1000u;
+  cluster.alu2.id = 0x2000u;
+  cluster.alu3.id = 0x3000u;
+  cluster.lsu0.id = 0x4000u;
+  cluster.lsu1.id = 0x5000u;
+  cluster.ffa0.id = 0x6000u;
+
+  configure_cluster(&cluster, &configuration);
+
+  // cl_kernel kernel = cmd->command.run.kernel;
+  // pocl_kernel_metadata_t *meta = kernel->meta;
+  // int num_args = meta->num_args;
+  // pocl_argument * argv = cmd->command.run.arguments;
+
+  // printf("argc=%d\n", num_args);
+
+  // for (int i = 0; i < num_args; i+=1)
+  // {
+  //   pocl_argument * a = &(argv[i]);
+  //   struct pocl_argument_info * ai = &(meta->arg_info[i]);
+  //   const char *arg_name = (ai->name && ai->name[0] != '\0') ? ai->name : "<noname>";
+  //   printf("arg %u name=%s\n", i, arg_name);
+
+  //   switch (ai->type)
+  //   {
+  //   case POCL_ARG_TYPE_POINTER:
+  //     printf("POCL_ARG_TYPE_POINTER\n");
+  //     pocl_mem_identifier mem = (*(cl_mem *)a->value)->device_ptrs[0];
+  //     printf("0x%08x\n", mem.mem_ptr);
+  //     break;
+    
+  //   case POCL_ARG_TYPE_IMAGE:
+  //   case POCL_ARG_TYPE_SAMPLER:
+  //   case POCL_ARG_TYPE_PIPE:
+  //     break;
+    
+  //   default:
+  //     printf("POCL_ARG_TYPE_SCALAR\n");
+  //     printf("0d%d\n", *(unsigned int*)a->value);
+  //     break;
+  //   }
+  // }
+
+  // alu_config  aluc0, 
+  //             aluc1, 
+  //             aluc2,
+  //             aluc3;
+
+  // lsu_config  lsuc0, 
+  //             lsuc1;
+
+  // rc cluster;
+
+  // uint32_t ** configuration;
+
+  // const uint32_t configuration_size = 6;
+
+  // cluster.id = 0;
+  // cluster.alu0.id = 0x0000u;
+  // cluster.alu1.id = 0x1000u;
+  // cluster.alu2.id = 0x2000u;
+  // cluster.alu3.id = 0x3000u;
+  // cluster.lsu0.id = 0x4000u;
+  // cluster.lsu1.id = 0x5000u;
+  // cluster.ffa0.id = 0x6000u;
+
+  // aluc0.op = ALU_ADD;
+  // aluc0.src1 = 0;
+  // aluc0.src2 = 1;
+  // aluc0.dstm = 1;
+
+  // aluc1.op = ALU_ADD;
+  // aluc1.src1 = 0;
+  // aluc1.src2 = 0;
+  // aluc1.dstm = 0;
+
+  // aluc2.op = ALU_ADD;
+  // aluc2.src1 = 0;
+  // aluc2.src2 = 0;
+  // aluc2.dstm = 0;
+
+  // aluc3.op = ALU_ADD;
+  // aluc3.src1 = 0;
+  // aluc3.src2 = 0;
+  // aluc3.dstm = 0;
+
+  // lsuc0.src = (uint64_t*)SRC_ADDR;
+  // lsuc0.dst = (uint64_t*)DST_ADDR_0;
+  // lsuc0.src_size = (N-1)*sizeof(DTYPE);
+  // lsuc0.dst_size = (N-1)*sizeof(DTYPE);
+
+  // lsuc1.src = (uint64_t*)SRC_ADDR;
+  // lsuc1.dst = 0;
+  // lsuc1.src_size = (N-1)*sizeof(DTYPE);
+  // lsuc1.dst_size = 0;
+
+  // configuration = (uint32_t **)malloc(configuration_size*sizeof(uint32_t*));
+  // configuration[5] = (uint32_t*)&aluc3;
+  // configuration[4] = (uint32_t*)&aluc2;
+  // configuration[3] = (uint32_t*)&aluc1;
+  // configuration[2] = (uint32_t*)&aluc0;
+  // configuration[1] = (uint32_t*)&lsuc1;
+  // configuration[0] = (uint32_t*)&lsuc0;
 }
