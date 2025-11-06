@@ -19,7 +19,7 @@ int transfer_from_memory(lsu inst, uint64_t * src, size_t size) {
     xdma_write_reg(src_addr_l,  (MM2S_SA+inst.id));
     xdma_write_reg(src_addr_u,  (MM2S_SA_MSB+inst.id));
     xdma_write_reg(length,      (MM2S_LENGTH+inst.id));
-    // xdma_write_reg(DMA_START,   (MM2S_DMACR+inst.id));
+    xdma_write_reg(DMA_START,   (MM2S_DMACR+inst.id));
     return 0;
 }
 
@@ -40,7 +40,7 @@ int transfer_to_memory(lsu inst, uint64_t * dst, size_t size) {
     xdma_write_reg(dst_addr_l,  (S2MM_DA+inst.id));
     xdma_write_reg(dst_addr_u,  (S2MM_DA_MSB+inst.id));
     xdma_write_reg(length,      (S2MM_LENGTH+inst.id));
-    // xdma_write_reg(DMA_START,   (S2MM_DMACR+inst.id));
+    xdma_write_reg(DMA_START,   (S2MM_DMACR+inst.id));
     return 0;
 }
 
