@@ -125,7 +125,7 @@ pocl_cgra_init_device_ops(struct pocl_device_ops *ops)
   ops->free = pocl_cgra_free;
   ops->map_mem = pocl_cgra_map_mem;
   ops->write = pocl_cgra_write;
-  ops->read = pocl_cgra_read;  
+  ops->read = pocl_cgra_read;
 }
 
 unsigned int
@@ -263,7 +263,9 @@ pocl_cgra_read (void *data,
 {
   printf("CGRA::read\n");
   int err = 0;
-  err = xdma_read_mem((void *)dst_host_ptr, size, (void *)(src_mem_id->mem_ptr));
+  void *__restrict__ device_ptr = src_mem_id->mem_ptr;
+  printf("%p-%p-%p\n", dst_host_ptr, device_ptr, device_ptr+offset);
+  err = xdma_read_mem((void *)dst_host_ptr, size, device_ptr+offset);
   if (err <= 0) {
     perror("Read from CGRA Device Failed");
   }
@@ -289,18 +291,16 @@ cgra_schedule_command(pocl_cgra_data_t *data)
       CDL_DELETE (data->ready_list, node);
       POCL_UNLOCK (data->cq_lock);
       printf("CGRA:exec_in_command\n");
-      
+
       if (node != NULL && node->type == CL_COMMAND_NDRANGE_KERNEL)
       {
         node->device->ops->compile_kernel(node, node->command.run.kernel, node->device, 1);
         POCL_MSG_PRINT_INFO ("NDrange event %" PRIu64 " launched, remove from readylist\n", node->queue_idx);
         pocl_cgra_run(data, node);
       }
-      else
-      {
-        pocl_exec_command (node);
-      }
       
+      pocl_exec_command (node);
+
       printf("CGRA:exec_out_command\n");
       POCL_LOCK (data->cq_lock);
   }
@@ -478,90 +478,23 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
 {
   printf("CGRA::run\n");
 
-  cl_kernel kernel = cmd->command.run.kernel;
-  const char *kname = kernel->name;
-  char fp[POCL_MAX_PATHNAME_LENGTH];
-
-  char cache_dir[POCL_MAX_PATHNAME_LENGTH];
-  pocl_cache_program_path(cache_dir, kernel->program, cmd->program_device_i);
-  snprintf(fp, POCL_MAX_PATHNAME_LENGTH, "%s/%s.cfg", cache_dir, kname);
-  printf("%s\n", fp);
-  int fdi = open(fp, O_RDONLY);
-  if (fdi < 0)
-    perror("Failed to open configuration file ");
-  
-  bitstream configuration;
-  read(fdi, &configuration, sizeof(bitstream));
-  close(fdi);
-
-  rc cluster;    
-  cluster.id = 0;
-  cluster.alu0.id = 0x0000u;
-  cluster.alu1.id = 0x1000u;
-  cluster.alu2.id = 0x2000u;
-  cluster.alu3.id = 0x3000u;
-  cluster.lsu0.id = 0x4000u;
-  cluster.lsu1.id = 0x5000u;
-  cluster.ffa0.id = 0x6000u;
-
-  configure_cluster(&cluster, &configuration);
-
-  read_alu_csrs(cluster.alu0);
-  read_alu_csrs(cluster.alu1);
-  read_alu_csrs(cluster.alu2);
-  read_alu_csrs(cluster.alu3);
-  read_lsu_csrs(cluster.lsu0);
-  read_lsu_csrs(cluster.lsu1);
-
-
   // cl_kernel kernel = cmd->command.run.kernel;
-  // pocl_kernel_metadata_t *meta = kernel->meta;
-  // int num_args = meta->num_args;
-  // pocl_argument * argv = cmd->command.run.arguments;
+  // const char *kname = kernel->name;
+  // char fp[POCL_MAX_PATHNAME_LENGTH];
 
-  // printf("argc=%d\n", num_args);
+  // char cache_dir[POCL_MAX_PATHNAME_LENGTH];
+  // pocl_cache_program_path(cache_dir, kernel->program, cmd->program_device_i);
+  // snprintf(fp, POCL_MAX_PATHNAME_LENGTH, "%s/%s.cfg", cache_dir, kname);
+  // printf("%s\n", fp);
+  // int fdi = open(fp, O_RDONLY);
+  // if (fdi < 0)
+  //   perror("Failed to open configuration file ");
+  
+  // bitstream configuration;
+  // read(fdi, &configuration, sizeof(bitstream));
+  // close(fdi);
 
-  // for (int i = 0; i < num_args; i+=1)
-  // {
-  //   pocl_argument * a = &(argv[i]);
-  //   struct pocl_argument_info * ai = &(meta->arg_info[i]);
-  //   const char *arg_name = (ai->name && ai->name[0] != '\0') ? ai->name : "<noname>";
-  //   printf("arg %u name=%s\n", i, arg_name);
-
-  //   switch (ai->type)
-  //   {
-  //   case POCL_ARG_TYPE_POINTER:
-  //     printf("POCL_ARG_TYPE_POINTER\n");
-  //     pocl_mem_identifier mem = (*(cl_mem *)a->value)->device_ptrs[0];
-  //     printf("0x%08x\n", mem.mem_ptr);
-  //     break;
-    
-  //   case POCL_ARG_TYPE_IMAGE:
-  //   case POCL_ARG_TYPE_SAMPLER:
-  //   case POCL_ARG_TYPE_PIPE:
-  //     break;
-    
-  //   default:
-  //     printf("POCL_ARG_TYPE_SCALAR\n");
-  //     printf("0d%d\n", *(unsigned int*)a->value);
-  //     break;
-  //   }
-  // }
-
-  // alu_config  aluc0, 
-  //             aluc1, 
-  //             aluc2,
-  //             aluc3;
-
-  // lsu_config  lsuc0, 
-  //             lsuc1;
-
-  // rc cluster;
-
-  // uint32_t ** configuration;
-
-  // const uint32_t configuration_size = 6;
-
+  // rc cluster;    
   // cluster.id = 0;
   // cluster.alu0.id = 0x0000u;
   // cluster.alu1.id = 0x1000u;
@@ -571,41 +504,5 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
   // cluster.lsu1.id = 0x5000u;
   // cluster.ffa0.id = 0x6000u;
 
-  // aluc0.op = ALU_ADD;
-  // aluc0.src1 = 0;
-  // aluc0.src2 = 1;
-  // aluc0.dstm = 1;
-
-  // aluc1.op = ALU_ADD;
-  // aluc1.src1 = 0;
-  // aluc1.src2 = 0;
-  // aluc1.dstm = 0;
-
-  // aluc2.op = ALU_ADD;
-  // aluc2.src1 = 0;
-  // aluc2.src2 = 0;
-  // aluc2.dstm = 0;
-
-  // aluc3.op = ALU_ADD;
-  // aluc3.src1 = 0;
-  // aluc3.src2 = 0;
-  // aluc3.dstm = 0;
-
-  // lsuc0.src = (uint64_t*)SRC_ADDR;
-  // lsuc0.dst = (uint64_t*)DST_ADDR_0;
-  // lsuc0.src_size = (N-1)*sizeof(DTYPE);
-  // lsuc0.dst_size = (N-1)*sizeof(DTYPE);
-
-  // lsuc1.src = (uint64_t*)SRC_ADDR;
-  // lsuc1.dst = 0;
-  // lsuc1.src_size = (N-1)*sizeof(DTYPE);
-  // lsuc1.dst_size = 0;
-
-  // configuration = (uint32_t **)malloc(configuration_size*sizeof(uint32_t*));
-  // configuration[5] = (uint32_t*)&aluc3;
-  // configuration[4] = (uint32_t*)&aluc2;
-  // configuration[3] = (uint32_t*)&aluc1;
-  // configuration[2] = (uint32_t*)&aluc0;
-  // configuration[1] = (uint32_t*)&lsuc1;
-  // configuration[0] = (uint32_t*)&lsuc0;
+  // configure_cluster(&cluster, &configuration);
 }
