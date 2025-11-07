@@ -461,13 +461,33 @@ pocl_cgra_compile_kernel (
   int fdo = open(fp, O_WRONLY | O_CREAT | O_TRUNC, 0777);
   if (fdo < 0)
     perror("Failed to write configuration file ");
-  bitstream configuration;
-  configuration.alu_0_cfg.op = ALU_ADD; configuration.alu_0_cfg.src1 = ALU_SRC_0; configuration.alu_0_cfg.src2 = ALU_SRC_1; configuration.alu_0_cfg.dstm = ALU_DST_0;
-  configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_0; configuration.alu_1_cfg.dstm = 0;
-  configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_0; configuration.alu_2_cfg.dstm = 0;
-  configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_0; configuration.alu_3_cfg.dstm = 0;
-  configuration.lsu_0_cfg.src = (uint64_t*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(uint64_t); configuration.lsu_0_cfg.dst = (uint64_t*)(0x10000080); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(uint64_t);
-  configuration.lsu_1_cfg.src = (uint64_t*)(0x10000000); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(uint64_t); configuration.lsu_1_cfg.dst = (uint64_t*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
+
+
+  printf("%s\n", kname);
+
+  bitstream configuration = {0};
+  
+  if (strncmp(kname, (const char *)"loop", POCL_MAX_PATHNAME_LENGTH) == 0) {
+    configuration.alu_0_cfg.op = ALU_ADD; configuration.alu_0_cfg.src1 = ALU_SRC_0; configuration.alu_0_cfg.src2 = ALU_SRC_1; configuration.alu_0_cfg.dstm = ALU_DST_0;
+    configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_0; configuration.alu_1_cfg.dstm = 0;
+    configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_0; configuration.alu_2_cfg.dstm = 0;
+    configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_0; configuration.alu_3_cfg.dstm = 0;
+    configuration.lsu_0_cfg.src = (uint64_t*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(uint64_t); configuration.lsu_0_cfg.dst = (uint64_t*)(0x10000080); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(uint64_t);
+    configuration.lsu_1_cfg.src = (uint64_t*)(0x10000000); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(uint64_t); configuration.lsu_1_cfg.dst = (uint64_t*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
+  }
+  else
+  if (strncmp(kname, (const char *)"addv", POCL_MAX_PATHNAME_LENGTH) == 0) {
+    configuration.alu_0_cfg.op = ALU_ADD; configuration.alu_0_cfg.src1 = ALU_SRC_0; configuration.alu_0_cfg.src2 = ALU_SRC_1; configuration.alu_0_cfg.dstm = ALU_DST_0;
+    configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_0; configuration.alu_1_cfg.dstm = 0;
+    configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_0; configuration.alu_2_cfg.dstm = 0;
+    configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_0; configuration.alu_3_cfg.dstm = 0;
+    configuration.lsu_0_cfg.src = (uint64_t*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(uint64_t); configuration.lsu_0_cfg.dst = (uint64_t*)(0x10000100); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(uint64_t);
+    configuration.lsu_1_cfg.src = (uint64_t*)(0x10000080); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(uint64_t); configuration.lsu_1_cfg.dst = (uint64_t*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
+  }
+  else {
+
+  }
+  
   ssize_t wn = write(fdo, &configuration, sizeof(bitstream));
   close(fdo);
   return CL_SUCCESS;

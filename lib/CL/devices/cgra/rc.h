@@ -18,8 +18,7 @@ typedef struct {
     ffa ffa0;
 } rc;
 
-typedef struct
-{
+typedef struct {
     alu_config alu_0_cfg;
     alu_config alu_1_cfg;
     alu_config alu_2_cfg;
