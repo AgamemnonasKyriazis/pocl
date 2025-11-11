@@ -469,7 +469,7 @@ pocl_cgra_compile_kernel (
     configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_0; configuration.alu_1_cfg.dstm = 0;
     configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_0; configuration.alu_2_cfg.dstm = 0;
     configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_0; configuration.alu_3_cfg.dstm = 0;
-    configuration.lsu_0_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000080); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
+    configuration.lsu_0_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000040); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
     configuration.lsu_1_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_1_cfg.dst = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
   }
   else
@@ -478,8 +478,8 @@ pocl_cgra_compile_kernel (
     configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_0; configuration.alu_1_cfg.dstm = 0;
     configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_0; configuration.alu_2_cfg.dstm = 0;
     configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_0; configuration.alu_3_cfg.dstm = 0;
-    configuration.lsu_0_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000100); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
-    configuration.lsu_1_cfg.src = (DTYPE*)(0x10000080); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_1_cfg.dst = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
+    configuration.lsu_0_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000080); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
+    configuration.lsu_1_cfg.src = (DTYPE*)(0x10000040); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_1_cfg.dst = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
   }
   else {
 
@@ -522,4 +522,7 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
   cluster.ffa0.id = 0x6000u;
 
   configure_cluster(&cluster, &configuration);
+
+  read_lsu_csrs(cluster.lsu0);
+  read_lsu_csrs(cluster.lsu1);
 }
