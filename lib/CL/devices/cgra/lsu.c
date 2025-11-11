@@ -2,7 +2,7 @@
 #include "xdma.h"
 #include <stdio.h>
 
-int transfer_from_memory(lsu inst, uint64_t * src, size_t size) {
+int transfer_from_memory(lsu inst, DTYPE * src, size_t size) {
     uint32_t src_addr_l, src_addr_u;
     uint32_t length;
 
@@ -23,7 +23,7 @@ int transfer_from_memory(lsu inst, uint64_t * src, size_t size) {
     return 0;
 }
 
-int transfer_to_memory(lsu inst, uint64_t * dst, size_t size) {
+int transfer_to_memory(lsu inst, DTYPE * dst, size_t size) {
     uint32_t dst_addr_l, dst_addr_u;
     uint32_t length;
 

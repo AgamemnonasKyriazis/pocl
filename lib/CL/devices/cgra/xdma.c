@@ -74,12 +74,12 @@ int xdma_write_mem (void * hptr, size_t nbytes, void * dptr) {
         return -1;
     }
     
-    if (nbytes & 0b111) {
+    if (nbytes & 0b11) {
         perror ("Unaligned size");
         return -1;
     }
     
-    if (((uint64_t)dptr) & 0b111) {
+    if (((uint64_t)dptr) & 0b11) {
         perror ("Unaligned pointer to device");
         return -1;
     }
@@ -103,11 +103,11 @@ int xdma_read_mem (void * hptr, size_t nbytes, void * dptr) {
         perror ("Failed to use R-CHx of XDMA file not open");
         return -1;
     }
-    if (nbytes & 0b111) {
+    if (nbytes & 0b11) {
         perror ("Unaligned size");
         return -1;
     }
-    if (((uint64_t)dptr) & 0b111) {
+    if (((uint64_t)dptr) & 0b11) {
         perror ("Unaligned pointer to device");
         return -1;
     }

@@ -352,7 +352,6 @@ pocl_cgra_build_source (cl_program program, cl_uint device_i,
       /* 1 = compile & link, 0 = compile only, linked later via clLinkProgram*/
       int link_program)
 {
-
   cl_device_id device = program->devices[device_i];
   int _compile_program = device->compiler_available;
   int _link_program    = device->linker_available;
@@ -459,12 +458,10 @@ pocl_cgra_compile_kernel (
   snprintf(fp, POCL_MAX_PATHNAME_LENGTH, "%s/%s.cfg", cache_dir, kname);
   printf("%s\n", fp);
   int fdo = open(fp, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-  if (fdo < 0)
+  if (fdo < 0) {
     perror("Failed to write configuration file ");
-
-
-  printf("%s\n", kname);
-
+  }
+  
   bitstream configuration = {0};
   
   if (strncmp(kname, (const char *)"loop", POCL_MAX_PATHNAME_LENGTH) == 0) {
@@ -472,8 +469,8 @@ pocl_cgra_compile_kernel (
     configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_0; configuration.alu_1_cfg.dstm = 0;
     configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_0; configuration.alu_2_cfg.dstm = 0;
     configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_0; configuration.alu_3_cfg.dstm = 0;
-    configuration.lsu_0_cfg.src = (uint64_t*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(uint64_t); configuration.lsu_0_cfg.dst = (uint64_t*)(0x10000080); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(uint64_t);
-    configuration.lsu_1_cfg.src = (uint64_t*)(0x10000000); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(uint64_t); configuration.lsu_1_cfg.dst = (uint64_t*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
+    configuration.lsu_0_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000080); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
+    configuration.lsu_1_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_1_cfg.dst = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
   }
   else
   if (strncmp(kname, (const char *)"addv", POCL_MAX_PATHNAME_LENGTH) == 0) {
@@ -481,8 +478,8 @@ pocl_cgra_compile_kernel (
     configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_0; configuration.alu_1_cfg.dstm = 0;
     configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_0; configuration.alu_2_cfg.dstm = 0;
     configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_0; configuration.alu_3_cfg.dstm = 0;
-    configuration.lsu_0_cfg.src = (uint64_t*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(uint64_t); configuration.lsu_0_cfg.dst = (uint64_t*)(0x10000100); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(uint64_t);
-    configuration.lsu_1_cfg.src = (uint64_t*)(0x10000080); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(uint64_t); configuration.lsu_1_cfg.dst = (uint64_t*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
+    configuration.lsu_0_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000100); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
+    configuration.lsu_1_cfg.src = (DTYPE*)(0x10000080); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_1_cfg.dst = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
   }
   else {
 

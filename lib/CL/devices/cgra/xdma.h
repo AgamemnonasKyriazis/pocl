@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define DTYPE uint32_t
+
 extern int xdma_init_done;
 
 int xdma_init ();

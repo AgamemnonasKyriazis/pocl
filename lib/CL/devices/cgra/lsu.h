@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "xdma.h"
+
 #define MM2S_DMACR  0x00 // MM2S_DMACR MM2S DMA Control register
 #define MM2S_DMASR  0x04 // MM2S_DMASR MM2S DMA Status register
 // 0x08 – 0x14 Reserved N/A
@@ -33,16 +35,16 @@ typedef struct
 
 typedef struct
 {
-    uint64_t * src;
-    uint64_t * dst;
+    DTYPE * src;
+    DTYPE * dst;
     size_t src_size;
     size_t dst_size;
 } lsu_config;
 
 
-int transfer_from_memory(lsu inst, uint64_t * src, size_t size);
+int transfer_from_memory(lsu inst, DTYPE * src, size_t size);
 
-int transfer_to_memory(lsu inst, uint64_t * dst, size_t size);
+int transfer_to_memory(lsu inst, DTYPE * dst, size_t size);
 
 void read_lsu_csrs(lsu inst);
 
