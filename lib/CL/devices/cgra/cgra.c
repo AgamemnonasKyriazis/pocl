@@ -470,7 +470,7 @@ pocl_cgra_compile_kernel (
     configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_0; configuration.alu_2_cfg.dstm = 0;
     configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_0; configuration.alu_3_cfg.dstm = 0;
     configuration.lsu_0_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000040); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
-    configuration.lsu_1_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_1_cfg.dst = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
+    configuration.lsu_1_cfg.src = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.src_size = 0;                    configuration.lsu_1_cfg.dst = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
   }
   else
   if (strncmp(kname, (const char *)"addv", POCL_MAX_PATHNAME_LENGTH) == 0) {
