@@ -492,6 +492,7 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
 
       configure_cluster(&cluster, &configuration);
 
+      region[i] = 1;
       break;
     }
   }
