@@ -6,4 +6,10 @@
 #include "prototypes.inc"
 GEN_PROTOTYPES (cgra)
 
+struct vcgra
+{
+    
+};
+
+
 #endif /* POCL_CGRA_H */

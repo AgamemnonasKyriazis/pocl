@@ -38,7 +38,6 @@
 
 #include "pocl_cl.h"
 #include "bufalloc.h"
-#include "pocl_util.h"
 
 const char * _long_name  = "Memory Mapped Reconfigurable Accelerator";
 const char * _short_name = "cgra";
@@ -54,6 +53,8 @@ memory_region_t * alloc_regions;
 #define MEM_BASE_ADDR 0x10000000UL
 #define G_MEM_SIZE (1024*8)
 #define IMAGE_SUPPORT CL_FALSE
+
+int region[2] = {0, 0};
 
 typedef struct
 {
@@ -408,52 +409,16 @@ pocl_cgra_compile_kernel (
 
   char entry[POCL_MAX_PATHNAME_LENGTH];
   snprintf(entry, POCL_MAX_PATHNAME_LENGTH, "%s", kname);
-
-  // const char *out = getenv("CGRA_DFG_OUT");
-  // if (!out)
-  //   out = "/tmp/pocl/dfg.dot";
-  
-  // int rc = cgra_dump_dfg_from_wgf_bc(bc, bc_size, entry, out);
   
   // char exec_cmd[4096];
   // snprintf(exec_cmd, sizeof(exec_cmd), "opt %s -passes=cgra -disable-output", program_bc_path);
-  
   // system(exec_cmd);
+
+  pocl_kernel_metadata_t *meta = kmd;
+
+  cgra_codegen_inject_params(meta, cmd, bc, bc_size, entry);
+  // cgra_codegen(bc, bc_size, entry);
   
-  // cl_kernel kernel = cmd->command.run.kernel;
-  pocl_kernel_metadata_t *meta = kernel->meta;
-  int num_args = meta->num_args;
-  pocl_argument * argv = cmd->command.run.arguments;
-
-  printf("argc=%d\n", num_args);
-
-  for (int i = 0; i < num_args; i+=1)
-  {
-    pocl_argument * a = &(argv[i]);
-    struct pocl_argument_info * ai = &(meta->arg_info[i]);
-    const char *arg_name = (ai->name && ai->name[0] != '\0') ? ai->name : "<noname>";
-    printf("arg %u name=%s\n", i, arg_name);
-    
-    switch (ai->type)
-    {
-    case POCL_ARG_TYPE_POINTER:
-      printf("POCL_ARG_TYPE_POINTER\n");
-      pocl_mem_identifier mem = (*(cl_mem *)a->value)->device_ptrs[0];
-      printf("0x%08x\n", mem.mem_ptr);
-      break;
-    
-    case POCL_ARG_TYPE_IMAGE:
-    case POCL_ARG_TYPE_SAMPLER:
-    case POCL_ARG_TYPE_PIPE:
-      break;
-    
-    default:
-      printf("POCL_ARG_TYPE_SCALAR\n");
-      printf("0d%d\n", *(unsigned int*)a->value);
-      break;
-    }
-  }
-
   char fp[POCL_MAX_PATHNAME_LENGTH];
   snprintf(fp, POCL_MAX_PATHNAME_LENGTH, "%s/%s.cfg", cache_dir, kname);
   printf("%s\n", fp);
@@ -466,19 +431,19 @@ pocl_cgra_compile_kernel (
   
   if (strncmp(kname, (const char *)"loop", POCL_MAX_PATHNAME_LENGTH) == 0) {
     configuration.alu_0_cfg.op = ALU_ADD; configuration.alu_0_cfg.src1 = ALU_SRC_0; configuration.alu_0_cfg.src2 = ALU_SRC_2; configuration.alu_0_cfg.dstm = ALU_DST_0;
-    configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_0; configuration.alu_1_cfg.dstm = 0;
-    configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_0; configuration.alu_2_cfg.dstm = 0;
-    configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_0; configuration.alu_3_cfg.dstm = 0;
-    configuration.lsu_0_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000040); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
+    configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_2; configuration.alu_1_cfg.dstm = 0;
+    configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_2; configuration.alu_2_cfg.dstm = 0;
+    configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_2; configuration.alu_3_cfg.dstm = 0;
+    configuration.lsu_0_cfg.src = (DTYPE*)(0x10000080); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000100); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
     configuration.lsu_1_cfg.src = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.src_size = 0;                    configuration.lsu_1_cfg.dst = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
   }
   else
   if (strncmp(kname, (const char *)"addv", POCL_MAX_PATHNAME_LENGTH) == 0) {
     configuration.alu_0_cfg.op = ALU_ADD; configuration.alu_0_cfg.src1 = ALU_SRC_0; configuration.alu_0_cfg.src2 = ALU_SRC_1; configuration.alu_0_cfg.dstm = ALU_DST_0;
-    configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_0; configuration.alu_1_cfg.dstm = 0;
-    configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_0; configuration.alu_2_cfg.dstm = 0;
-    configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_0; configuration.alu_3_cfg.dstm = 0;
-    configuration.lsu_0_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000080); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
+    configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_2; configuration.alu_1_cfg.dstm = 0;
+    configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_2; configuration.alu_2_cfg.dstm = 0;
+    configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_2; configuration.alu_3_cfg.dstm = 0;
+    configuration.lsu_0_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x100000c0); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
     configuration.lsu_1_cfg.src = (DTYPE*)(0x10000040); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_1_cfg.dst = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
   }
   else {
@@ -511,18 +476,28 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
   read(fdi, &configuration, sizeof(bitstream));
   close(fdi);
 
-  rc cluster;    
-  cluster.id = 0;
-  cluster.alu0.id = 0x0000u;
-  cluster.alu1.id = 0x1000u;
-  cluster.alu2.id = 0x2000u;
-  cluster.alu3.id = 0x3000u;
-  cluster.lsu0.id = 0x4000u;
-  cluster.lsu1.id = 0x5000u;
-  cluster.ffa0.id = 0x6000u;
+  for (int i = 0; i < 2; i+=1) {
+    int occupied = region[i];
+    if (!occupied) {
+      rc cluster;    
+      
+      cluster.id = i << 16;
+      cluster.alu0.id = 0x0000u;
+      cluster.alu1.id = 0x1000u;
+      cluster.alu2.id = 0x2000u;
+      cluster.alu3.id = 0x3000u;
+      cluster.lsu0.id = 0x4000u;
+      cluster.lsu1.id = 0x5000u;
+      cluster.ffa0.id = 0x6000u;
 
-  configure_cluster(&cluster, &configuration);
+      configure_cluster(&cluster, &configuration);
 
-  read_lsu_csrs(cluster.lsu0);
-  read_lsu_csrs(cluster.lsu1);
+      break;
+    }
+  }
+
+
+
+  // read_lsu_csrs(cluster.lsu0);
+  // read_lsu_csrs(cluster.lsu1);
 }
