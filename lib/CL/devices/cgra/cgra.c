@@ -297,7 +297,7 @@ cgra_schedule_command(pocl_cgra_data_t *data)
       {
         node->device->ops->compile_kernel(node, node->command.run.kernel, node->device, 1);
         POCL_MSG_PRINT_INFO ("NDrange event %" PRIu64 " launched, remove from readylist\n", node->queue_idx);
-        pocl_cgra_run(data, node);
+        // pocl_cgra_run(data, node);
       }
       
       pocl_exec_command (node);
@@ -476,9 +476,11 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
   read(fdi, &configuration, sizeof(bitstream));
   close(fdi);
 
-  for (int i = 0; i < 2; i+=1) {
+  for (int i = 0; i < 2; i+=1)
+  {
+    printf("-----------%d-----------------\n", i);
     int occupied = region[i];
-    if (!occupied) {
+    if (occupied == 0) {
       rc cluster;    
       
       cluster.id = i << 16;
@@ -492,13 +494,12 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
 
       configure_cluster(&cluster, &configuration);
 
+      read_lsu_csrs(cluster.lsu0);
+      read_lsu_csrs(cluster.lsu1);
+
       region[i] = 1;
-      break;
+      printf("---------------------configured - %d -- %d\n", i, region[i]);
+      return;
     }
   }
-
-
-
-  // read_lsu_csrs(cluster.lsu0);
-  // read_lsu_csrs(cluster.lsu1);
 }
