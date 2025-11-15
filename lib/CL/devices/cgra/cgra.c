@@ -89,7 +89,7 @@ cl_int cgra_alloc_buffer (pocl_mem_identifier *p, size_t size) {
   if (chunk == NULL)
     return CL_MEM_OBJECT_ALLOCATION_FAILURE;
 
-  printf("CGRA::Allocated %zu bytes from 0x%zx\n", size, chunk->start_address);
+  // printf("CGRA::Allocated %zu bytes from 0x%zx\n", size, chunk->start_address);
 
   p->mem_ptr = (void*)chunk->start_address;
   p->version = 0;
@@ -193,23 +193,18 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   device->preferred_vector_width_double = 0;
   device->native_vector_width_double = 0;
 
-  printf("CGRA::init\n");
   return ret;
 }
 
 cl_int pocl_cgra_alloc_mem_obj(cl_device_id device, cl_mem mem_obj, void *host_ptr)
 {
   cl_int ret = CL_SUCCESS;
-  printf("CGRA::alloc_mem_obj\n");
-  printf("device gmemID = %d\n", device->global_mem_id);
   pocl_mem_identifier *p = &mem_obj->device_ptrs[device->global_mem_id];
   pocl_global_mem_t *gmem = device->global_memory;
   pocl_cgra_data_t* d = device->data;
   p->mem_ptr = NULL;
   p->version = 0;
   cgra_alloc_buffer(p, mem_obj->size);
-  printf("CGRA::Memory ptr  -> %p\n", p->mem_ptr);
-  printf("CGRA::Memory size -> %lu\n", mem_obj->size);
 
   if (p->mem_ptr == NULL)
     return CL_MEM_OBJECT_ALLOCATION_FAILURE;
@@ -219,7 +214,6 @@ cl_int pocl_cgra_alloc_mem_obj(cl_device_id device, cl_mem mem_obj, void *host_p
 
 void pocl_cgra_free(cl_device_id device, cl_mem mem)
 {
-  printf("CGRA::free\n");
   pocl_mem_identifier *p = &mem->device_ptrs[device->global_mem_id];
   p->mem_ptr = NULL;
   p->version = 0;
@@ -227,7 +221,6 @@ void pocl_cgra_free(cl_device_id device, cl_mem mem)
 
 cl_int pocl_cgra_map_mem(void *data, pocl_mem_identifier *src_mem_id, cl_mem src_buf, mem_mapping_t *map)
 {
-  printf("CGRA::map_mem\n");
   return CL_SUCCESS;
 }
 
@@ -248,7 +241,9 @@ pocl_cgra_write (void *data,
 {
   printf("CGRA::write\n");
   int err = 0;
-  err = xdma_write_mem((void *)src_host_ptr, size, (void *)(dst_mem_id->mem_ptr));
+  void *__restrict__ device_ptr = dst_mem_id->mem_ptr;
+  printf("%p-%p\n", src_host_ptr, device_ptr+offset);
+  err = xdma_write_mem((void *)src_host_ptr, size, device_ptr+offset);
   if (err <= 0) {
     perror("Write to CGRA Device Failed");
   }
@@ -265,7 +260,7 @@ pocl_cgra_read (void *data,
   printf("CGRA::read\n");
   int err = 0;
   void *__restrict__ device_ptr = src_mem_id->mem_ptr;
-  printf("%p-%p-%p\n", dst_host_ptr, device_ptr, device_ptr+offset);
+  printf("%p-%p\n", dst_host_ptr, device_ptr+offset);
   err = xdma_read_mem((void *)dst_host_ptr, size, device_ptr+offset);
   if (err <= 0) {
     perror("Read from CGRA Device Failed");
@@ -275,7 +270,6 @@ pocl_cgra_read (void *data,
 void
 pocl_cgra_broadcast (cl_event event)
 {
-  printf("CGRA::broadcasting\n");
   pocl_broadcast(event);
 }
 
@@ -286,23 +280,17 @@ cgra_schedule_command(pocl_cgra_data_t *data)
 
   while ((node = data->ready_list))
   {
-      printf("CGRA::schedule_command\n");
       assert (pocl_command_is_ready (node->sync.event.event));
       assert (node->sync.event.event->status == CL_SUBMITTED);
       CDL_DELETE (data->ready_list, node);
       POCL_UNLOCK (data->cq_lock);
-      printf("CGRA:exec_in_command\n");
 
-      if (node != NULL && node->type == CL_COMMAND_NDRANGE_KERNEL)
-      {
+      if (node != NULL && node->type == CL_COMMAND_NDRANGE_KERNEL) {
         node->device->ops->compile_kernel(node, node->command.run.kernel, node->device, 1);
-        POCL_MSG_PRINT_INFO ("NDrange event %" PRIu64 " launched, remove from readylist\n", node->queue_idx);
-        // pocl_cgra_run(data, node);
       }
       
       pocl_exec_command (node);
 
-      printf("CGRA:exec_out_command\n");
       POCL_LOCK (data->cq_lock);
   }
   return;
@@ -311,7 +299,6 @@ cgra_schedule_command(pocl_cgra_data_t *data)
 void
 pocl_cgra_submit (_cl_command_node *node, cl_command_queue cq)
 {
-  printf("CGRA::submit-%x-%x\n", node->type, node->command);
 	printf("%s\n", pocl_command_to_str(node->type));
 
   if (node->type == CL_COMMAND_NDRANGE_KERNEL)
@@ -331,14 +318,11 @@ pocl_cgra_submit (_cl_command_node *node, cl_command_queue cq)
 
 void
 pocl_cgra_join (cl_device_id device, cl_command_queue cq)
-{
-  printf("CGRA::join\n");
-}
+{ }
 
 void
 pocl_cgra_flush (cl_device_id device, cl_command_queue cq)
 {
-  printf("CGRA::flush\n");
   pocl_cgra_data_t *data = (pocl_cgra_data_t *)device->data;
   POCL_LOCK (data->cq_lock);
   cgra_schedule_command (data);
@@ -356,7 +340,6 @@ pocl_cgra_build_source (cl_program program, cl_uint device_i,
   cl_device_id device = program->devices[device_i];
   int _compile_program = device->compiler_available;
   int _link_program    = device->linker_available;
-  printf("CGRA::build_from_source::COMPILE:%d::LINK:%d\n", _compile_program, _link_program);
   return pocl_driver_build_source(program, device_i, num_input_headers, input_headers, header_include_names, _link_program);
 }
 
@@ -366,7 +349,6 @@ int pocl_cgra_setup_metadata (
   unsigned int program_device_i
 )
 {
-  printf("CGRA::setup_metadata\n");
   return pocl_driver_setup_metadata(device, program, program_device_i);
 }
 
@@ -378,14 +360,11 @@ pocl_cgra_compile_kernel (
   int specialize
 )
 {
-  printf("CGRA::compile_kernel\n");
-  
   if (cmd == NULL || cmd->type != CL_COMMAND_NDRANGE_KERNEL)
     return CL_INVALID_OPERATION;
 
   char cache_dir[POCL_MAX_PATHNAME_LENGTH];
   pocl_cache_program_path(cache_dir, kernel->program, cmd->program_device_i);
-  printf("%s\n", cache_dir);
   
   char program_bc_path[POCL_MAX_PATHNAME_LENGTH];
   snprintf(program_bc_path, POCL_MAX_PATHNAME_LENGTH, "%s/program.bc", cache_dir);
@@ -405,23 +384,16 @@ pocl_cgra_compile_kernel (
   const char *kname = kernel->name;
   pocl_kernel_metadata_t *kmd = kernel->meta;
   cl_program prog = kernel->program;
-  printf("%lu-%lu-%lu %s\n", GWS[0], GWS[1], GWS[2], kname);
 
   char entry[POCL_MAX_PATHNAME_LENGTH];
   snprintf(entry, POCL_MAX_PATHNAME_LENGTH, "%s", kname);
-  
-  // char exec_cmd[4096];
-  // snprintf(exec_cmd, sizeof(exec_cmd), "opt %s -passes=cgra -disable-output", program_bc_path);
-  // system(exec_cmd);
 
   pocl_kernel_metadata_t *meta = kmd;
 
   cgra_codegen_inject_params(meta, cmd, bc, bc_size, entry);
-  // cgra_codegen(bc, bc_size, entry);
   
   char fp[POCL_MAX_PATHNAME_LENGTH];
   snprintf(fp, POCL_MAX_PATHNAME_LENGTH, "%s/%s.cfg", cache_dir, kname);
-  printf("%s\n", fp);
   int fdo = open(fp, O_WRONLY | O_CREAT | O_TRUNC, 0777);
   if (fdo < 0) {
     perror("Failed to write configuration file ");
@@ -456,33 +428,11 @@ pocl_cgra_compile_kernel (
 }
 
 void
-pocl_cgra_run (void *data, _cl_command_node *cmd)
-{
-  printf("CGRA::run\n");
-
-  cl_kernel kernel = cmd->command.run.kernel;
-  const char *kname = kernel->name;
-  char fp[POCL_MAX_PATHNAME_LENGTH];
-
-  char cache_dir[POCL_MAX_PATHNAME_LENGTH];
-  pocl_cache_program_path(cache_dir, kernel->program, cmd->program_device_i);
-  snprintf(fp, POCL_MAX_PATHNAME_LENGTH, "%s/%s.cfg", cache_dir, kname);
-  printf("%s\n", fp);
-  int fdi = open(fp, O_RDONLY);
-  if (fdi < 0)
-    perror("Failed to open configuration file ");
-  
-  bitstream configuration;
-  read(fdi, &configuration, sizeof(bitstream));
-  close(fdi);
-
-  for (int i = 0; i < 2; i+=1)
-  {
-    printf("-----------%d-----------------\n", i);
-    int occupied = region[i];
-    if (occupied == 0) {
+pocl_cgra_schedule_kernel(bitstream *configuration, const char *kname) {
+  for (int i = 0; i < 2; i+=1) {
+    int is_occupied = region[i];
+    if (!is_occupied) {
       rc cluster;    
-      
       cluster.id = i << 16;
       cluster.alu0.id = 0x0000u;
       cluster.alu1.id = 0x1000u;
@@ -491,15 +441,42 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
       cluster.lsu0.id = 0x4000u;
       cluster.lsu1.id = 0x5000u;
       cluster.ffa0.id = 0x6000u;
-
-      configure_cluster(&cluster, &configuration);
-
-      read_lsu_csrs(cluster.lsu0);
-      read_lsu_csrs(cluster.lsu1);
-
-      region[i] = 1;
-      printf("---------------------configured - %d -- %d\n", i, region[i]);
-      return;
+      configure_cluster(&cluster, configuration);
+      // read_lsu_csrs(cluster.lsu0);
+      // read_lsu_csrs(cluster.lsu1);
+      printf("kernel %s placed at region %d\n", kname, i);
+      break;
     }
   }
+}
+
+void
+pocl_cgra_run (void *data, _cl_command_node *cmd)
+{
+  printf("CGRA::run\n");
+
+  cl_kernel kernel = cmd->command.run.kernel;
+  const char *kname = kernel->name;
+
+  const size_t *LS = cmd->command.run.pc.local_size;            // [lx, ly, lz]
+  const size_t *NG = cmd->command.run.pc.num_groups;            // [gx, gy, gz] in WGs
+  size_t GWS[3] = { NG[0]*LS[0], NG[1]*LS[1], NG[2]*LS[2] };    // global work-items
+  const size_t *GO = cmd->command.run.pc.global_offset;         // optional use
+  unsigned WD = cmd->command.run.pc.work_dim;   
+
+
+  char fp[POCL_MAX_PATHNAME_LENGTH];
+  char cache_dir[POCL_MAX_PATHNAME_LENGTH];
+  pocl_cache_program_path(cache_dir, kernel->program, cmd->program_device_i);
+  snprintf(fp, POCL_MAX_PATHNAME_LENGTH, "%s/%s.cfg", cache_dir, kname);
+  int fdi = open(fp, O_RDONLY);
+  if (fdi < 0)
+    perror("Failed to open configuration file ");
+  
+  bitstream configuration;
+  read(fdi, &configuration, sizeof(bitstream));
+  close(fdi);
+
+  pocl_cgra_schedule_kernel(&configuration, kname);
+
 }
