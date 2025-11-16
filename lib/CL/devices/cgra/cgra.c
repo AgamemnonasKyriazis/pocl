@@ -445,17 +445,11 @@ pocl_cgra_schedule_kernel(bitstream *configuration, const char *kname) {
     if (!is_occupied) {
       rc cluster;    
       cluster.id = i << 16;
-      cluster.alu0.id = 0x0000u;
-      cluster.alu1.id = 0x1000u;
-      cluster.alu2.id = 0x2000u;
-      cluster.alu3.id = 0x3000u;
-      cluster.lsu0.id = 0x4000u;
-      cluster.lsu1.id = 0x5000u;
-      cluster.ffa0.id = 0x6000u;
       configure_cluster(&cluster, configuration);
       read_lsu_csrs(cluster.lsu0);
       read_lsu_csrs(cluster.lsu1);
       printf("kernel %s placed at region %d\n", kname, i);
+      region[i] = 1;
       break;
     }
   }
