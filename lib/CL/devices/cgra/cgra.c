@@ -362,9 +362,9 @@ pocl_cgra_write_configuration_file(const char* fp, const char* kname)
   }
   
   if (strncmp(kname, (const char *)"addv", POCL_MAX_PATHNAME_LENGTH) == 0) {
-    configuration.alu_0_cfg.op = ALU_ADD; configuration.alu_0_cfg.src1 = ALU_SRC_0; configuration.alu_0_cfg.src2 = ALU_SRC_1; configuration.alu_0_cfg.dstm = ALU_DST_0;
-    configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_2; configuration.alu_1_cfg.dstm = 0;
-    configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_2; configuration.alu_2_cfg.dstm = 0;
+    configuration.alu_0_cfg.op = ALU_ADD; configuration.alu_0_cfg.src1 = ALU_SRC_0; configuration.alu_0_cfg.src2 = ALU_SRC_2; configuration.alu_0_cfg.dstm = ALU_DST_0;
+    configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_2; configuration.alu_1_cfg.dstm = ALU_DST_1;
+    configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_1; configuration.alu_2_cfg.dstm = ALU_DST_0;
     configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_2; configuration.alu_3_cfg.dstm = 0;
     configuration.lsu_0_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000080); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
     configuration.lsu_1_cfg.src = (DTYPE*)(0x10000040); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_1_cfg.dst = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
@@ -372,7 +372,7 @@ pocl_cgra_write_configuration_file(const char* fp, const char* kname)
   else
   if (strncmp(kname, (const char *)"loop", POCL_MAX_PATHNAME_LENGTH) == 0) {
     configuration.alu_0_cfg.op = ALU_ADD; configuration.alu_0_cfg.src1 = ALU_SRC_0; configuration.alu_0_cfg.src2 = ALU_SRC_2; configuration.alu_0_cfg.dstm = ALU_DST_0;
-    configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_2; configuration.alu_1_cfg.dstm = 0;
+    configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_2; configuration.alu_1_cfg.dstm = ALU_DST_0;
     configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_2; configuration.alu_2_cfg.dstm = 0;
     configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_2; configuration.alu_3_cfg.dstm = 0;
     configuration.lsu_0_cfg.src = (DTYPE*)(0x100000c0); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000100); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
