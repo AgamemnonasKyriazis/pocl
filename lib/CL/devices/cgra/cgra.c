@@ -3,7 +3,7 @@
 #include "xdma.h"
 #include "lsu.h"
 #include "alu.h"
-#include "rc.h"
+#include "shell.h"
 
 #include "common.h"
 #include "common_driver.h"
@@ -354,7 +354,7 @@ pocl_cgra_setup_metadata (
 void
 pocl_cgra_write_configuration_file(const char* fp, const char* kname)
 {
-  bitstream configuration = {0};
+  mono_region_bitstream configuration = {0};
  
   int fdo = open(fp, O_WRONLY | O_CREAT | O_TRUNC, 0777);
   if (fdo < 0) {
@@ -362,27 +362,27 @@ pocl_cgra_write_configuration_file(const char* fp, const char* kname)
   }
   
   if (strncmp(kname, (const char *)"addv", POCL_MAX_PATHNAME_LENGTH) == 0) {
-    configuration.alu_0_cfg.op = ALU_ADD; configuration.alu_0_cfg.src1 = ALU_SRC_0; configuration.alu_0_cfg.src2 = ALU_SRC_2; configuration.alu_0_cfg.dstm = ALU_DST_0;
-    configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_1; configuration.alu_1_cfg.dstm = ALU_DST_1;
-    configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_2; configuration.alu_2_cfg.dstm = ALU_DST_1;
-    configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_2; configuration.alu_3_cfg.dstm = 0;
-    configuration.lsu_0_cfg.src = (DTYPE*)(0x10000000); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000080); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
-    configuration.lsu_1_cfg.src = (DTYPE*)(0x10000040); configuration.lsu_1_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_1_cfg.dst = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
+    configuration.__alu_cfg_0.op = ALU_ADD; configuration.__alu_cfg_0.src1 = ALU_SRC_0; configuration.__alu_cfg_0.src2 = ALU_SRC_2; configuration.__alu_cfg_0.dstm = ALU_DST_0;
+    configuration.__alu_cfg_1.op = ALU_ADD; configuration.__alu_cfg_1.src1 = ALU_SRC_0; configuration.__alu_cfg_1.src2 = ALU_SRC_1; configuration.__alu_cfg_1.dstm = ALU_DST_1;
+    configuration.__alu_cfg_2.op = ALU_ADD; configuration.__alu_cfg_2.src1 = ALU_SRC_0; configuration.__alu_cfg_2.src2 = ALU_SRC_2; configuration.__alu_cfg_2.dstm = ALU_DST_1;
+    configuration.__alu_cfg_3.op = ALU_ADD; configuration.__alu_cfg_3.src1 = ALU_SRC_0; configuration.__alu_cfg_3.src2 = ALU_SRC_2; configuration.__alu_cfg_3.dstm = 0;
+    configuration.__lsu_cfg_0.src = (0x10000000); configuration.__lsu_cfg_0.src_size = (16-1)*sizeof(DTYPE); configuration.__lsu_cfg_0.dst = (0x10000080); configuration.__lsu_cfg_0.dst_size = (16-1)*sizeof(DTYPE);
+    configuration.__lsu_cfg_1.src = (0x10000040); configuration.__lsu_cfg_1.src_size = (16-1)*sizeof(DTYPE); configuration.__lsu_cfg_1.dst = (0x00000000); configuration.__lsu_cfg_1.dst_size = 0;
   }
   else
   if (strncmp(kname, (const char *)"loop", POCL_MAX_PATHNAME_LENGTH) == 0) {
-    configuration.alu_0_cfg.op = ALU_ADD; configuration.alu_0_cfg.src1 = ALU_SRC_0; configuration.alu_0_cfg.src2 = ALU_SRC_2; configuration.alu_0_cfg.dstm = ALU_DST_0;
-    configuration.alu_1_cfg.op = ALU_ADD; configuration.alu_1_cfg.src1 = ALU_SRC_0; configuration.alu_1_cfg.src2 = ALU_SRC_2; configuration.alu_1_cfg.dstm = ALU_DST_1;
-    configuration.alu_2_cfg.op = ALU_ADD; configuration.alu_2_cfg.src1 = ALU_SRC_0; configuration.alu_2_cfg.src2 = ALU_SRC_2; configuration.alu_2_cfg.dstm = 0;
-    configuration.alu_3_cfg.op = ALU_ADD; configuration.alu_3_cfg.src1 = ALU_SRC_0; configuration.alu_3_cfg.src2 = ALU_SRC_2; configuration.alu_3_cfg.dstm = 0;
-    configuration.lsu_0_cfg.src = (DTYPE*)(0x100000c0); configuration.lsu_0_cfg.src_size = (16-1)*sizeof(DTYPE); configuration.lsu_0_cfg.dst = (DTYPE*)(0x10000100); configuration.lsu_0_cfg.dst_size = (16-1)*sizeof(DTYPE);
-    configuration.lsu_1_cfg.src = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.src_size = 0;                    configuration.lsu_1_cfg.dst = (DTYPE*)(0x00000000); configuration.lsu_1_cfg.dst_size = 0;
+    configuration.__alu_cfg_0.op = ALU_ADD; configuration.__alu_cfg_0.src1 = ALU_SRC_0; configuration.__alu_cfg_0.src2 = ALU_SRC_2; configuration.__alu_cfg_0.dstm = ALU_DST_0;
+    configuration.__alu_cfg_1.op = ALU_ADD; configuration.__alu_cfg_1.src1 = ALU_SRC_0; configuration.__alu_cfg_1.src2 = ALU_SRC_2; configuration.__alu_cfg_1.dstm = ALU_DST_1;
+    configuration.__alu_cfg_2.op = ALU_ADD; configuration.__alu_cfg_2.src1 = ALU_SRC_0; configuration.__alu_cfg_2.src2 = ALU_SRC_2; configuration.__alu_cfg_2.dstm = 0;
+    configuration.__alu_cfg_3.op = ALU_ADD; configuration.__alu_cfg_3.src1 = ALU_SRC_0; configuration.__alu_cfg_3.src2 = ALU_SRC_2; configuration.__alu_cfg_3.dstm = 0;
+    configuration.__lsu_cfg_0.src = (0x100000c0); configuration.__lsu_cfg_0.src_size = (16-1)*sizeof(DTYPE); configuration.__lsu_cfg_0.dst = (0x10000100); configuration.__lsu_cfg_0.dst_size = (16-1)*sizeof(DTYPE);
+    configuration.__lsu_cfg_1.src = (0x00000000); configuration.__lsu_cfg_1.src_size = 0;                    configuration.__lsu_cfg_1.dst = (0x00000000); configuration.__lsu_cfg_1.dst_size = 0;
   }
   else {
 
   }
   
-  ssize_t wn = write(fdo, &configuration, sizeof(bitstream));
+  ssize_t wn = write(fdo, &configuration, sizeof(mono_region_bitstream));
   close(fdo);
 }
 
@@ -439,15 +439,15 @@ pocl_cgra_compile_kernel (
 }
 
 void
-pocl_cgra_schedule_kernel(bitstream *configuration, const char *kname) {
+pocl_cgra_schedule_kernel(mono_region_bitstream *bit, const char *kname) {
   for (int i = 0; i < 2; i+=1) {
     int is_occupied = region[i];
     if (!is_occupied) {
-      rc cluster;    
-      cluster.id = i << 16;
-      configure_cluster(&cluster, configuration);
-      read_lsu_csrs(cluster.lsu0);
-      read_lsu_csrs(cluster.lsu1);
+      mono_region m_region;    
+      m_region.address = i << 16;
+      __configure_mono_region(&m_region, bit);
+      read_lsu_csrs(m_region.__lsu_0);
+      read_lsu_csrs(m_region.__lsu_1);
       printf("kernel %s placed at region %d\n", kname, i);
       region[i] = 1;
       break;
@@ -482,10 +482,10 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
   if (fdi < 0)
     perror("Failed to open configuration file ");
   
-  bitstream configuration;
-  read(fdi, &configuration, sizeof(bitstream));
+  mono_region_bitstream bit;
+  read(fdi, &bit, sizeof(bit));
   close(fdi);
 
-  pocl_cgra_schedule_kernel(&configuration, kname);
+  pocl_cgra_schedule_kernel(&bit, kname);
 
 }

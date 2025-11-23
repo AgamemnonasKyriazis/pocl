@@ -19,7 +19,7 @@ set(CGRA_SHELL_SOURCES
   ${CGRA_SHELL_EXT_DIR}/ffa.c
   ${CGRA_SHELL_EXT_DIR}/lsu.c
   ${CGRA_SHELL_EXT_DIR}/alu.c
-  ${CGRA_SHELL_EXT_DIR}/rc.c
+  ${CGRA_SHELL_EXT_DIR}/shell.c
 )
 
 add_pocl_device_library(pocl-devices-cgra
