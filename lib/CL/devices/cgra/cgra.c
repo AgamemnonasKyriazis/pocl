@@ -335,8 +335,8 @@ void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
   
   printf("Waiting for event, status: %d\n", event->status);
   while(__poll_kernel_status(ed->assigned_region) != 0) {
-      printf("Event not complete, waiting...\n");
-      POCL_WAIT_COND(ed->event_cond, event->pocl_lock);
+      // printf("Event not complete, waiting...\n");
+      // POCL_WAIT_COND(ed->event_cond, event->pocl_lock);
   }
 
   printf("Event completed, status: %d\n", event->status);
