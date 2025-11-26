@@ -41,7 +41,7 @@
 #include "bufalloc.h"
 
 #define MEM_BASE_ADDR 0x10000000UL
-#define G_MEM_SIZE (1024*8)
+#define G_MEM_SIZE (268435456000ull * 8)
 #define IMAGE_SUPPORT CL_FALSE
 
 #define VCGRA_N_REGIONS 2
@@ -105,10 +105,11 @@ cl_int cgra_alloc_buffer (pocl_mem_identifier *p, size_t size) {
   chunk_info_t *chunk = NULL;
 
   chunk = pocl_alloc_buffer(alloc_regions, size);
-  if (chunk == NULL)
+  if (chunk == NULL) {
+    printf("CL_MEM_OBJECT_ALLOCATION_FAILURE");
     return CL_MEM_OBJECT_ALLOCATION_FAILURE;
-
-  // printf("CGRA::Allocated %zu bytes from 0x%zx\n", size, chunk->start_address);
+  }
+  printf("CGRA::Allocated %zu bytes from 0x%zx\n", size, chunk->start_address);
 
   p->mem_ptr = (void*)chunk->start_address;
   p->version = 0;
@@ -170,9 +171,6 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   
   pocl_init_default_device_infos(device, "");
   pocl_cpu_init_common(device);
-  pocl_setup_device_for_system_memory(device);
-  cgra_init_memory_region();
-  xdma_init();
   
   device->type = CL_DEVICE_TYPE_ACCELERATOR;
   device->long_name = _long_name;
@@ -184,6 +182,7 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
 
   device->global_mem_id = 0;
   device->global_mem_size = G_MEM_SIZE;
+  device->max_mem_alloc_size = G_MEM_SIZE;
   device->image_support = IMAGE_SUPPORT;
 
   device->max_compute_units = 1;
@@ -236,6 +235,10 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   vcgra_regions[1].__lsu_0.id = 0x04000 | vcgra_regions[1].address;
   vcgra_regions[1].__lsu_1.id = 0x05000 | vcgra_regions[1].address;
   vcgra_regions[1].__ffa_0.id = 0x06000 | vcgra_regions[1].address;
+
+  pocl_setup_device_for_system_memory(device);
+  cgra_init_memory_region();
+  xdma_init();
 
   return ret;
 }
@@ -335,7 +338,7 @@ void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
       printf("Event not complete, waiting...\n");
       POCL_WAIT_COND(ed->event_cond, event->pocl_lock);
   }
-    
+
   printf("Event completed, status: %d\n", event->status);
   POCL_UNLOCK_OBJ(event);
 }
