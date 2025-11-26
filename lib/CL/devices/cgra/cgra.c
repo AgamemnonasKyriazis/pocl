@@ -431,9 +431,9 @@ pocl_cgra_write_configuration_file(const char* fp, const char* kname)
   #define SRC_ADDR_0 (0x10000000ULL)
   #define DST_ADDR_0 (0x10000000ULL+LEN*4)
   
-  #define SRC_ADDR_A (0x40000000ULL+2*LEN*4)
-  #define SRC_ADDR_B (0x40000000ULL+3*LEN*4)
-  #define DST_ADDR_C (0x40000000ULL+4*LEN*4)
+  #define SRC_ADDR_A (0x10000000ULL+2*LEN*4)
+  #define SRC_ADDR_B (0x10000000ULL+3*LEN*4)
+  #define DST_ADDR_C (0x10000000ULL+4*LEN*4)
 
   mono_region_bitstream configuration = {0};
   mono_region_bitstream cfg0 = {0};
