@@ -40,11 +40,9 @@
 #include "pocl_cl.h"
 #include "bufalloc.h"
 
-#define MEM_BASE_ADDR 0x10000000UL
-#define G_MEM_SIZE (268435456000ull * 8)
-#define IMAGE_SUPPORT CL_FALSE
-
-#define VCGRA_N_REGIONS 2
+#define G_MEM_BASE_ADDR   DDR_BASE_ADDR
+#define G_MEM_SIZE        DDR_SIZE
+#define IMAGE_SUPPORT     CL_FALSE
 
 const char * _long_name  = "Memory Mapped Reconfigurable Accelerator";
 const char * _short_name = "cgra";
@@ -54,66 +52,56 @@ const char * _extensions = "\0";
 const char * _profile    = "FULL_PROFILE";
 const char * _hash_str   = "cgmmra-linux-gnu";
 
-memory_region_t * alloc_regions;
+memory_region_t * alloc_region;
 
-mono_region_t * vcgra_regions;
-
-struct vcgra_kernel
-{
-    char hash[64];
-    const char *kname;
-    mono_region *region;
-};
-
-typedef struct
-{
+typedef struct {
   /* List of commands ready to be executed */
   _cl_command_node *ready_list;
   /* List of commands not yet ready to be executed */
   _cl_command_node *command_list;
   /* Lock for command list related operations */
   pocl_lock_t cq_lock;
-
   /* printf buffer */
   void *printf_buffer;
-
   cl_bool available;
-
   cl_device_id device;
-
 } pocl_cgra_data_t;
 
-typedef struct {
+typedef struct _vcgra_event_data_t {
+    pthread_cond_t cond;
+    vcgra_kernel_t *vcgra_kernel;
+} vcgra_event_data_t;
 
-  pthread_cond_t event_cond;
-
-  volatile int kernel_completed;
-
-  mono_region_t *assigned_region;
-
-} pocl_cgra_event_data_t;
-
-cl_int cgra_init_memory_region () {
-  alloc_regions = (memory_region_t *)calloc(1, sizeof(memory_region_t));
-  pocl_init_mem_region(alloc_regions, MEM_BASE_ADDR, G_MEM_SIZE);
+cl_int
+cgra_init_memory_region ()
+{
+  /* Initialize dynamic allocation memory region */
+  alloc_region = (memory_region_t *)calloc(1, sizeof(memory_region_t));
+  pocl_init_mem_region(alloc_region, G_MEM_BASE_ADDR, G_MEM_SIZE);
   return CL_SUCCESS;
 }
 
-cl_int cgra_alloc_buffer (pocl_mem_identifier *p, size_t size) {
-
+cl_int
+cgra_alloc_buffer (pocl_mem_identifier *p, size_t size)
+{
   assert(p->mem_ptr == NULL);
+  
   chunk_info_t *chunk = NULL;
+  /* Allocate a buffer from memory */
 
-  chunk = pocl_alloc_buffer(alloc_regions, size);
+  chunk = pocl_alloc_buffer(alloc_region, size);
+
   if (chunk == NULL) {
     printf("CL_MEM_OBJECT_ALLOCATION_FAILURE");
     return CL_MEM_OBJECT_ALLOCATION_FAILURE;
   }
+
   printf("CGRA::Allocated %zu bytes from 0x%zx\n", size, chunk->start_address);
 
   p->mem_ptr = (void*)chunk->start_address;
-  p->version = 0;
-  p->extra = 0;
+  p->version = 0u;
+  p->extra = 0u;
+  p->is_pinned = 1u;
 
   return CL_SUCCESS;
 }
@@ -169,9 +157,9 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
 {
   cl_int ret = CL_SUCCESS;
   
+  xdma_init();
+
   pocl_init_default_device_infos(device, "");
-  pocl_cpu_init_common(device);
-  
   device->type = CL_DEVICE_TYPE_ACCELERATOR;
   device->long_name = _long_name;
   device->short_name = _short_name;
@@ -180,10 +168,14 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   device->extensions = _extensions;
   device->profile = _profile;
 
+  pocl_setup_device_for_system_memory(device);
+  cgra_init_memory_region();
   device->global_mem_id = 0;
   device->global_mem_size = G_MEM_SIZE;
   device->max_mem_alloc_size = G_MEM_SIZE;
   device->image_support = IMAGE_SUPPORT;
+  device->address_bits = 32;
+  device->mem_base_addr_align = 4;
 
   device->max_compute_units = 1;
   device->max_work_group_size = 3;
@@ -205,8 +197,7 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   d->device = device;
 
   /* LLVM */
-  device->address_bits = 32;
-  // LLVM target
+  pocl_cpu_init_common(device);
   device->llvm_target_triplet = strdup("x86_64-linux-gnu");
   device->llvm_cpu = strdup("x86-64");
   device->extensions = strdup("");
@@ -215,36 +206,15 @@ pocl_cgra_init (unsigned j, cl_device_id device, const char* parameters)
   device->native_vector_width_double = 0;
 
   /* VCGRA */
-  vcgra_regions = malloc(sizeof(mono_region_t)*VCGRA_N_REGIONS);
-  vcgra_regions[0].is_configured = 0u;
-  vcgra_regions[0].address    = 0x00000;
-  vcgra_regions[0].__alu_0.id = 0x00000 | vcgra_regions[0].address;
-  vcgra_regions[0].__alu_1.id = 0x01000 | vcgra_regions[0].address;
-  vcgra_regions[0].__alu_2.id = 0x02000 | vcgra_regions[0].address;
-  vcgra_regions[0].__alu_3.id = 0x03000 | vcgra_regions[0].address;
-  vcgra_regions[0].__lsu_0.id = 0x04000 | vcgra_regions[0].address;
-  vcgra_regions[0].__lsu_1.id = 0x05000 | vcgra_regions[0].address;
-  vcgra_regions[0].__ffa_0.id = 0x06000 | vcgra_regions[0].address;
-
-  vcgra_regions[1].is_configured = 0u;
-  vcgra_regions[1].address    = 0x10000;
-  vcgra_regions[1].__alu_0.id = 0x00000 | vcgra_regions[1].address;
-  vcgra_regions[1].__alu_1.id = 0x01000 | vcgra_regions[1].address;
-  vcgra_regions[1].__alu_2.id = 0x02000 | vcgra_regions[1].address;
-  vcgra_regions[1].__alu_3.id = 0x03000 | vcgra_regions[1].address;
-  vcgra_regions[1].__lsu_0.id = 0x04000 | vcgra_regions[1].address;
-  vcgra_regions[1].__lsu_1.id = 0x05000 | vcgra_regions[1].address;
-  vcgra_regions[1].__ffa_0.id = 0x06000 | vcgra_regions[1].address;
-
-  pocl_setup_device_for_system_memory(device);
-  cgra_init_memory_region();
-  xdma_init();
-
+  __init_vcgra_regions();
+  
   return ret;
 }
 
 cl_int pocl_cgra_uninit(unsigned j, cl_device_id device)
 {
+  xdma_release();
+  __uninit_vcgra_regions();
   return CL_SUCCESS;
 }
 
@@ -252,10 +222,8 @@ cl_int pocl_cgra_alloc_mem_obj(cl_device_id device, cl_mem mem_obj, void *host_p
 {
   cl_int ret = CL_SUCCESS;
   pocl_mem_identifier *p = &mem_obj->device_ptrs[device->global_mem_id];
-  pocl_global_mem_t *gmem = device->global_memory;
-  pocl_cgra_data_t* d = device->data;
   p->mem_ptr = NULL;
-  p->version = 0;
+  
   cgra_alloc_buffer(p, mem_obj->size);
 
   if (p->mem_ptr == NULL)
@@ -267,6 +235,7 @@ cl_int pocl_cgra_alloc_mem_obj(cl_device_id device, cl_mem mem_obj, void *host_p
 void pocl_cgra_free(cl_device_id device, cl_mem mem)
 {
   pocl_mem_identifier *p = &mem->device_ptrs[device->global_mem_id];
+  pocl_release_mem_host_ptr (mem);
   p->mem_ptr = NULL;
   p->version = 0;
 }
@@ -326,20 +295,25 @@ pocl_cgra_broadcast (cl_event event)
 void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
 
   if (event->data == NULL) {
-      printf("Warning: event has no CGRA-specific data\n");
+      printf("Warning: event has no VCGRA-specific data\n");
       return;
   }
 
-  pocl_cgra_event_data_t *ed = (pocl_cgra_event_data_t *)event->data;
-  POCL_LOCK_OBJ(event);
-  
-  printf("Waiting for event, status: %d\n", event->status);
-  while(__poll_kernel_status(ed->assigned_region) != 0) {
-      // printf("Event not complete, waiting...\n");
-      // POCL_WAIT_COND(ed->event_cond, event->pocl_lock);
-  }
+  // vcgra_kernel_t *kd = (vcgra_kernel_t *)event->data;
+  // POCL_LOCK_OBJ (event);
+  // printf("Waiting for event, status: %d\n", event->status);
+  // while(__poll_kernel_status(kd->assigned_region) == REGION_OCCUPIED);
+  // kd->assigned_region->is_configured = 0u;
+  // printf("Event completed, status: %d\n", event->status);
+  // free(kd);
+  // POCL_UNLOCK_OBJ (event);
 
-  printf("Event completed, status: %d\n", event->status);
+  vcgra_event_data_t *ed = (vcgra_event_data_t *)event->data;  
+  POCL_LOCK_OBJ(event);
+  while (event->status > CL_COMPLETE) {
+    POCL_WAIT_COND(ed->cond, event->pocl_lock);
+  }
+  free(ed);
   POCL_UNLOCK_OBJ(event);
 }
 
@@ -352,12 +326,15 @@ cgra_schedule_command(pocl_cgra_data_t *data)
   {
       assert (pocl_command_is_ready (node->sync.event.event));
       assert (node->sync.event.event->status == CL_SUBMITTED);
+      
       CDL_DELETE (data->ready_list, node);
+      
       POCL_UNLOCK (data->cq_lock);
 
       if (node != NULL && node->type == CL_COMMAND_NDRANGE_KERNEL) {
         node->device->ops->compile_kernel(node, node->command.run.kernel, node->device, 1);
       }
+
       pocl_exec_command (node);
 
       POCL_LOCK (data->cq_lock);
@@ -387,7 +364,12 @@ pocl_cgra_submit (_cl_command_node *node, cl_command_queue cq)
 
 void
 pocl_cgra_join (cl_device_id device, cl_command_queue cq)
-{ }
+{
+  pocl_cgra_data_t *data = (pocl_cgra_data_t *)device->data;
+  POCL_LOCK (data->cq_lock);
+  cgra_schedule_command (data);
+  POCL_UNLOCK (data->cq_lock);
+}
 
 void
 pocl_cgra_flush (cl_device_id device, cl_command_queue cq)
@@ -468,6 +450,7 @@ pocl_cgra_write_configuration_file(const char* fp, const char* kname)
     memcpy(&configuration, &cfg1, sizeof(mono_region_bitstream));
   }
   else {
+    memset(&configuration, 0u, sizeof(mono_region_bitstream));
   }
 
   ssize_t wn = write(fdo, &configuration, sizeof(mono_region_bitstream));
@@ -526,20 +509,6 @@ pocl_cgra_compile_kernel (
   return CL_SUCCESS;
 }
 
-mono_region_t *
-pocl_cgra_schedule_kernel(mono_region_bitstream *bit, const char *kname) {
-  for (int i = 0; i < VCGRA_N_REGIONS; i+=1) {
-    int is_occupied = vcgra_regions[i].is_configured;
-    if (!is_occupied) {
-      __configure_mono_region(&vcgra_regions[i], bit);
-      printf("kernel %s placed at region %d\n", kname, i);
-      vcgra_regions[i].is_configured = 1;
-      return &vcgra_regions[i];
-    }
-  }
-  return NULL;
-}
-
 void
 pocl_cgra_run (void *data, _cl_command_node *cmd)
 {
@@ -553,7 +522,6 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
   size_t GWS[3] = { NG[0]*LS[0], NG[1]*LS[1], NG[2]*LS[2] };    // global work-items
   const size_t *GO = cmd->command.run.pc.global_offset;         // optional use
   unsigned WD = cmd->command.run.pc.work_dim;   
-
 
   char cache_dir[POCL_MAX_PATHNAME_LENGTH];
   pocl_cache_program_path(cache_dir, kernel->program, cmd->program_device_i);
@@ -571,12 +539,21 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
   read(fdi, &bit, sizeof(bit));
   close(fdi);
 
-  mono_region_t *mregion = pocl_cgra_schedule_kernel(&bit, kname);
+  mono_region_t *mregion = __schedule_kernel(&bit, kname);
 
-  cl_event e = cmd->sync.event.event;
-  pocl_cgra_event_data_t *edata = (pocl_cgra_event_data_t*)calloc(sizeof(pocl_cgra_event_data_t), 1);
-  POCL_INIT_COND(edata->event_cond);
-  edata->kernel_completed = 0;
-  edata->assigned_region = mregion;  
-  e->data = edata;
+  /* 
+   * Event data struct use for synchronization on Wait(); 
+   */
+  vcgra_event_data_t *ed = (vcgra_event_data_t*)calloc(sizeof(vcgra_event_data_t), 1);
+  POCL_INIT_COND(ed->cond);
+  cmd->sync.event.event->data = ed;
+
+  /*
+   * VCGRA kernel data struct for metadata
+   */
+  vcgra_kernel_t *vcgra_kernel = (vcgra_kernel_t*)calloc(sizeof(vcgra_kernel_t), 1);
+  vcgra_kernel->assigned_region = mregion;
+  vcgra_kernel->kname = kname;
+
+  ed->vcgra_kernel = vcgra_kernel;
 }
