@@ -319,6 +319,9 @@ void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
   free(ed);
   POCL_UNLOCK_OBJ(event);
 
+  read_lsu_csrs(vcgra_regions[0].__lsu_0);
+  read_lsu_csrs(vcgra_regions[1].__lsu_0);
+
   while (__poll_dev_activity() == REGION_OCCUPIED);
 
 }
