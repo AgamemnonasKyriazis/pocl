@@ -233,9 +233,12 @@ cl_int pocl_cgra_alloc_mem_obj(cl_device_id device, cl_mem mem_obj, void *host_p
 }
 
 void pocl_cgra_free(cl_device_id device, cl_mem mem)
-{
+{  
   pocl_mem_identifier *p = &mem->device_ptrs[device->global_mem_id];
-  pocl_release_mem_host_ptr (mem);
+
+  if (p->mem_ptr == NULL)
+    return;
+
   p->mem_ptr = NULL;
   p->version = 0;
 }
@@ -315,6 +318,9 @@ void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
   }
   free(ed);
   POCL_UNLOCK_OBJ(event);
+
+  while (__poll_dev_activity() == REGION_OCCUPIED);
+
 }
 
 static void
@@ -535,11 +541,9 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
   if (fdi < 0)
     perror("Failed to open configuration file ");
   
-  mono_region_bitstream bit;
-  read(fdi, &bit, sizeof(bit));
+  mono_region_bitstream *bit = (mono_region_bitstream *)calloc(sizeof(mono_region_bitstream), 1);
+  read(fdi, bit, sizeof(bit));
   close(fdi);
-
-  mono_region_t *mregion = __schedule_kernel(&bit, kname);
 
   /* 
    * Event data struct use for synchronization on Wait(); 
@@ -551,9 +555,15 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
   /*
    * VCGRA kernel data struct for metadata
    */
-  vcgra_kernel_t *vcgra_kernel = (vcgra_kernel_t*)calloc(sizeof(vcgra_kernel_t), 1);
-  vcgra_kernel->assigned_region = mregion;
-  vcgra_kernel->kname = kname;
+  vcgra_kernel_t *vk = (vcgra_kernel_t*)calloc(sizeof(vcgra_kernel_t), 1);
+  vk->kname = kname;
+  vk->bit   = bit;
+  vk->assigned_region = NULL;
+  vk->next = NULL;
 
-  ed->vcgra_kernel = vcgra_kernel;
+  __push_kernel(vk);
+
+  __print_queue();
+
+  ed->vcgra_kernel = vk;
 }
