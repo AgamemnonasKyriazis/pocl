@@ -545,7 +545,7 @@ pocl_cgra_run (void *data, _cl_command_node *cmd)
     perror("Failed to open configuration file ");
   
   mono_region_bitstream *bit = (mono_region_bitstream *)calloc(sizeof(mono_region_bitstream), 1);
-  read(fdi, bit, sizeof(bit));
+  read(fdi, bit, sizeof(mono_region_bitstream));
   close(fdi);
 
   /* 
