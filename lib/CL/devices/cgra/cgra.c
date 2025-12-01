@@ -323,11 +323,11 @@ void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
   read_lsu_csrs(vcgra_regions[1].__lsu_0);
 
   while(!__kernel_queue_is_empty()) {
-    sleep(.3);
+    sleep(2);
   }
   
   while (__poll_dev_activity() == REGION_OCCUPIED) {
-    sleep(.3);
+    sleep(2);
   }
 
 }
