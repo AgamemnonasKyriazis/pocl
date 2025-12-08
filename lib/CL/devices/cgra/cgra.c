@@ -326,7 +326,7 @@ void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
     sleep(2);
   }
   
-  while (__poll_dev_activity() == REGION_OCCUPIED) {
+  while (__poll_vcgra_status() == DEVICE_STATUS_BUSY) {
     sleep(2);
   }
 
