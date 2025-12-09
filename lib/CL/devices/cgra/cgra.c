@@ -297,10 +297,10 @@ pocl_cgra_broadcast (cl_event event)
 
 void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
 
-  if (event->data == NULL) {
-      printf("Warning: event has no VCGRA-specific data\n");
-      return;
-  }
+  // if (event->data == NULL) {
+  //     printf("Warning: event has no VCGRA-specific data\n");
+  //     return;
+  // }
 
   // vcgra_kernel_t *kd = (vcgra_kernel_t *)event->data;
   // POCL_LOCK_OBJ (event);
@@ -320,15 +320,14 @@ void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
   // POCL_UNLOCK_OBJ(event);
 
   POCL_LOCK_OBJ(event);
-
   while(!__kernel_queue_is_empty()) {
+    printf("Kernel Queue is not Empty\n");
     sleep(2);
   }
-  
   while (__poll_vcgra_status() == DEVICE_STATUS_BUSY) {
+    printf("Device is busy\n");
     sleep(2);
   }
-
   POCL_UNLOCK_OBJ(event);
 }
 
