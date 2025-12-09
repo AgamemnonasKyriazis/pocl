@@ -319,6 +319,8 @@ void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
   // free(ed);
   // POCL_UNLOCK_OBJ(event);
 
+  POCL_LOCK_OBJ(event);
+
   while(!__kernel_queue_is_empty()) {
     sleep(2);
   }
@@ -327,6 +329,7 @@ void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
     sleep(2);
   }
 
+  POCL_UNLOCK_OBJ(event);
 }
 
 static void
