@@ -311,16 +311,13 @@ void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
   // free(kd);
   // POCL_UNLOCK_OBJ (event);
 
-  vcgra_event_data_t *ed = (vcgra_event_data_t *)event->data;  
-  POCL_LOCK_OBJ(event);
-  while (event->status > CL_COMPLETE) {
-    POCL_WAIT_COND(ed->cond, event->pocl_lock);
-  }
-  free(ed);
-  POCL_UNLOCK_OBJ(event);
-
-  read_lsu_csrs(vcgra_regions[0].__lsu_0);
-  read_lsu_csrs(vcgra_regions[1].__lsu_0);
+  // vcgra_event_data_t *ed = (vcgra_event_data_t *)event->data;  
+  // POCL_LOCK_OBJ(event);
+  // while (event->status > CL_COMPLETE) {
+  //   POCL_WAIT_COND(ed->cond, event->pocl_lock);
+  // }
+  // free(ed);
+  // POCL_UNLOCK_OBJ(event);
 
   while(!__kernel_queue_is_empty()) {
     sleep(2);
