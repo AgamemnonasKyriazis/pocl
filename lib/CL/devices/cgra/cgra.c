@@ -451,12 +451,12 @@ pocl_cgra_write_configuration_file(const char* fp, const char* kname)
   cfg0.__lsu_cfg_1.src = 0x00000000; cfg0.__lsu_cfg_1.src_size = 0;                 cfg0.__lsu_cfg_1.dst = 0x00000000; cfg0.__lsu_cfg_1.dst_size = 0; 
 
   /* VADD */
-  cfg1->__alu_cfg_0.op = ALU_ADD; cfg1->__alu_cfg_0.src1 = ALU_SRC_0; cfg1->__alu_cfg_0.src2 = ALU_SRC_2; cfg1->__alu_cfg_0.dstm = ALU_DST_0;
-  cfg1->__alu_cfg_1.op = ALU_ADD; cfg1->__alu_cfg_1.src1 = ALU_SRC_0; cfg1->__alu_cfg_1.src2 = ALU_SRC_1; cfg1->__alu_cfg_1.dstm = ALU_DST_1;
-  cfg1->__alu_cfg_2.op = ALU_ADD; cfg1->__alu_cfg_2.src1 = ALU_SRC_0; cfg1->__alu_cfg_2.src2 = ALU_SRC_2; cfg1->__alu_cfg_2.dstm = ALU_DST_1;
-  cfg1->__alu_cfg_3.op = ALU_ADD; cfg1->__alu_cfg_3.src1 = ALU_SRC_0; cfg1->__alu_cfg_3.src2 = ALU_SRC_2; cfg1->__alu_cfg_3.dstm = 0;
-  cfg1->__lsu_cfg_0.src = SRC_ADDR_A; cfg1->__lsu_cfg_0.src_size = LEN*sizeof(DTYPE); cfg1->__lsu_cfg_0.dst = DST_ADDR_C; cfg1->__lsu_cfg_0.dst_size = LEN*sizeof(DTYPE);
-  cfg1->__lsu_cfg_1.src = SRC_ADDR_B; cfg1->__lsu_cfg_1.src_size = LEN*sizeof(DTYPE); cfg1->__lsu_cfg_1.dst = 0x00000000; cfg1->__lsu_cfg_1.dst_size = 0;
+  cfg1.__alu_cfg_0.op = ALU_ADD; cfg1.__alu_cfg_0.src1 = ALU_SRC_0; cfg1.__alu_cfg_0.src2 = ALU_SRC_2; cfg1.__alu_cfg_0.dstm = ALU_DST_0;
+  cfg1.__alu_cfg_1.op = ALU_ADD; cfg1.__alu_cfg_1.src1 = ALU_SRC_0; cfg1.__alu_cfg_1.src2 = ALU_SRC_1; cfg1.__alu_cfg_1.dstm = ALU_DST_1;
+  cfg1.__alu_cfg_2.op = ALU_ADD; cfg1.__alu_cfg_2.src1 = ALU_SRC_0; cfg1.__alu_cfg_2.src2 = ALU_SRC_2; cfg1.__alu_cfg_2.dstm = ALU_DST_1;
+  cfg1.__alu_cfg_3.op = ALU_ADD; cfg1.__alu_cfg_3.src1 = ALU_SRC_0; cfg1.__alu_cfg_3.src2 = ALU_SRC_2; cfg1.__alu_cfg_3.dstm = 0;
+  cfg1.__lsu_cfg_0.src = SRC_ADDR_A; cfg1.__lsu_cfg_0.src_size = LEN*sizeof(DTYPE); cfg1.__lsu_cfg_0.dst = DST_ADDR_C; cfg1.__lsu_cfg_0.dst_size = LEN*sizeof(DTYPE);
+  cfg1.__lsu_cfg_1.src = SRC_ADDR_B; cfg1.__lsu_cfg_1.src_size = LEN*sizeof(DTYPE); cfg1.__lsu_cfg_1.dst = 0x00000000; cfg1.__lsu_cfg_1.dst_size = 0;
 
   if (strncmp(kname, (const char *)"loop", POCL_MAX_PATHNAME_LENGTH) == 0) {
     memcpy(&configuration, &cfg0, sizeof(mono_region_bitstream));
