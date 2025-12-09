@@ -297,10 +297,10 @@ pocl_cgra_broadcast (cl_event event)
 
 void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
 
-  // if (event->data == NULL) {
-  //     printf("Warning: event has no VCGRA-specific data\n");
-  //     return;
-  // }
+  if (event->data == NULL) {
+      printf("Warning: event has no VCGRA-specific data\n");
+      return;
+  }
 
   // vcgra_kernel_t *kd = (vcgra_kernel_t *)event->data;
   // POCL_LOCK_OBJ (event);
@@ -319,15 +319,22 @@ void pocl_cgra_wait_event(cl_device_id device, cl_event event) {
   // free(ed);
   // POCL_UNLOCK_OBJ(event);
 
+  vcgra_event_data_t *ed = event->data;
+  vcgra_kernel_t *vk = ed->vcgra_kernel;
+
   POCL_LOCK_OBJ(event);
   while(!__kernel_queue_is_empty()) {
     printf("Kernel Queue is not Empty\n");
     sleep(2);
   }
-  while (__poll_vcgra_status() == DEVICE_STATUS_BUSY) {
-    printf("Device is busy\n");
+  while (__poll_vcgra_region_status(vk->assigned_region) == REGION_STATUS_BUSY) {
+    printf("Region is busy\n");
     sleep(2);
   }
+
+  read_lsu_csrs(vk->assigned_region->__lsu_0);
+  read_lsu_csrs(vk->assigned_region->__lsu_1);
+
   POCL_UNLOCK_OBJ(event);
 }
 
@@ -465,11 +472,11 @@ pocl_cgra_write_configuration_file(const char* fp, const char* kname)
   else
   if (strncmp(kname, (const char *)"addv", POCL_MAX_PATHNAME_LENGTH) == 0) {
     memcpy(&configuration, &cfg1, sizeof(mono_region_bitstream));
-    printf("addv");
+    printf("addv\n");
   }
   else {
     memset(&configuration, 0u, sizeof(mono_region_bitstream));
-    printf("none");
+    printf("none\n");
   }
 
   ssize_t wn = write(fdo, &configuration, sizeof(mono_region_bitstream));
